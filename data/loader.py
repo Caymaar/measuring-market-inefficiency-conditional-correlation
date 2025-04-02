@@ -22,6 +22,9 @@ def main():
 
         df = df[['Close']]
 
+        # Put Date index as YYYY-MM-DD
+        df.index = df.index.strftime('%Y-%m-%d')
+
         # Rename the column to 'Close'
         df.rename(columns={'Close': name}, inplace=True)
 
