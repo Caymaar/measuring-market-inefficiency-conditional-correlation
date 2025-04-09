@@ -1,31 +1,23 @@
-## Tutoriel d'installation des dépendances
-
-### Option 1 : Installation avec pip uniquement
-1. Ouvrez votre terminal.
-2. Placez-vous dans le dossier du projet :
-    ```
-    cd /chemin/vers/le/dossier
-    ```
-3. Installez le package via pip :
-    ```
-    pip install .
-    ```
-
-### Option 2 : Installation avec uv
-1. Vérifiez si uv est installé (sinon, installez-le) :
-    ```
-    pip install uv
-    ```
-2. Placez-vous dans le dossier du projet :
-    ```
-    cd /chemin/vers/le/dossier
-    ```
-3. Générez l'environnement virtuel et installez toutes les dépendances en exécutant :
-    ```
-    uv sync
-    ```
-
-
+Metadata-Version: 2.4
+Name: measuring-market-inefficiency-conditional-correlation
+Version: 0.1.0
+Summary: Replication of the following Research article : 'Measuring conditional correlation between financial markets’ inefficiency'
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+Requires-Dist: configparser>=7.2.0
+Requires-Dist: hurst>=0.0.5
+Requires-Dist: ipykernel>=6.29.5
+Requires-Dist: matplotlib>=3.10.1
+Requires-Dist: numpy>=2.2.4
+Requires-Dist: pandas>=2.2.3
+Requires-Dist: pywavelets>=1.8.0
+Requires-Dist: scikit-learn>=1.6.1
+Requires-Dist: scipy>=1.15.2
+Requires-Dist: statsmodels>=0.14.4
+Requires-Dist: stochastic>=0.4.0
+Requires-Dist: yfinance>=0.2.55
+Requires-Dist: openpyxl
+Requires-Dist: fbm>=0.3.0
 
 ## 1. Contexte général
 
