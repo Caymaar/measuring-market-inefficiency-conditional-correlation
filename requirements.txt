@@ -1,0 +1,10 @@
+configparser>=7.2.0
+hurst>=0.0.5
+ipykernel>=6.29.5
+matplotlib>=3.10.1
+numpy>=2.2.4
+pandas>=2.2.3
+scipy>=1.15.2
+yfinance>=0.2.55
+plotly
+statsmodels
