@@ -1,7 +1,12 @@
 from typing import Dict
 import pandas as pd
+<<<<<<< Updated upstream
 from .enums import HurstMethodType
 
+=======
+from enums import HurstMethodType
+from inefficiency_calculator import InefficiencyCalculator
+>>>>>>> Stashed changes
 
 class Framework:
     """
@@ -17,13 +22,22 @@ class Framework:
             hurst_method (HurstMethodType): Hurst estimation method enum
             params (Dict[str: any]): global parameters
         """
-        ...
+        self.data = data
+        self.hurst_method = hurst_method
+        self.params = params
+
+        # Initialize the output series
+        self.inefficiency_series = {}
+        self.dcc_series = {}
+        self.granger_tests = {}
 
     def _compute_inefficiency(self):
         """
         Call the InefficiencyCalculator module and launch the rolling estimation of inefficiency.
         """
-        self.inefficiency_series = ...
+
+        self.inefficiency_calculator = InefficiencyCalculator(self.hurst_method, self.params)
+        self.inefficiency_series = {undl: self.inefficiency_calculator.calculate_inefficiency(data) for undl, data in self.data.items()}
 
     def _compute_conditional_correlations(self):
         """

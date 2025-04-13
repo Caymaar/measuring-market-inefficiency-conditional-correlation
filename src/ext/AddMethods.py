@@ -10,7 +10,6 @@ import sys
 import numpy as np
 import scipy.optimize as op
 
-
 class AddMethods(object):
 
     def __init__(self):
