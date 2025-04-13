@@ -22,7 +22,7 @@ class Launcher:
         self.dates = dates
         self.params = params
 
-        start_date = min([pd.to_datetime(period[0], dayfirst=True) for period in dates.values()]) - pd.DateOffset(days=self.params['window'])
+        start_date = min([pd.to_datetime(period[0], dayfirst=True) for period in dates.values()]) - pd.DateOffset(days=self.params.get('window', 0))
         end_date = max([pd.to_datetime(period[1], dayfirst=True) for period in dates.values()])
 
         global_data = {undl: utils.get_data(undl, start_date, end_date) for undl in data}
@@ -46,7 +46,7 @@ class Launcher:
         start_date_index = self.df.index.get_indexer([start_date], method='ffill')[0]
 
         # Calculer l'index de la date qui est self.params['window'] jours avant
-        start_date_index = max(0, start_date_index - self.params['window'])
+        start_date_index = max(0, start_date_index - self.params.get('window', 0))
         start_date = self.df.index[start_date_index]
 
         # Filter the DataFrame to get the sub-series
