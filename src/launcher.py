@@ -10,7 +10,7 @@ class Launcher:
     Run the Framework for each set of dates.
     """
 
-    def __init__(self, data: List[str], dates: Dict[str, List[str]], hurst_method: HurstMethodType, params=Dict[str, None]):
+    def __init__(self, data: List[str], dates: Dict[str, List[str]], hurst_method_type: HurstMethodType, params=Dict[str: any]):
         """
         Parameters:
             data (List[str]): Input data names
