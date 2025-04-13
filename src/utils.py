@@ -12,11 +12,16 @@ def get_config():
     config.read(config_path)
     return config
 
-def get_data(filename):
+def get_data(filename, start_date=None, end_date=None):
     config = get_config()
     if not filename.endswith('.csv'):
         filename += '.csv'
-    file_path = os.path.join("..", config['paths']['data_folder'], filename)
+    file_path = os.path.join(config['paths']['data_folder'], filename)
     if not os.path.exists(file_path):
         raise FileNotFoundError(f"Le fichier {filename} n'existe pas dans le dossier {config['paths']['data_folder']}.")
-    return pd.read_csv(file_path, parse_dates=['Date'], index_col=0).squeeze()
+    data = pd.read_csv(file_path, parse_dates=['Date'], index_col=0).squeeze()
+    if start_date:
+        data = data.loc[start_date:]
+    if end_date:
+        data = data.loc[:end_date]
+    return data
