@@ -1,6 +1,6 @@
 from typing import Dict
 import pandas as pd
-from enums import HurstMethodType
+from .enums import HurstMethodType
 
 
 class Framework:
@@ -8,7 +8,7 @@ class Framework:
     Framework buit to analyse the conditional correlations & the causality between markets' inefficiencies.
     """
 
-    def __init__(self, data: Dict[str: pd.Series], hurst_method: HurstMethodType, params=Dict[str: any]):
+    def __init__(self, data: Dict[str, pd.Series], hurst_method: HurstMethodType, params=Dict[str, None]):
         """
         Instanciate the Framework by setting the input data and the parameters.
 

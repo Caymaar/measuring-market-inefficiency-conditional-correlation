@@ -1,8 +1,8 @@
 from typing import Dict, List, Tuple
 import pandas as pd
 from .framework import Framework
-from enums import HurstMethodType
-import utils
+from .enums import HurstMethodType
+from src import utils
 
 
 class Launcher:
@@ -10,7 +10,7 @@ class Launcher:
     Run the Framework for each set of dates.
     """
 
-    def __init__(self, data: List[str], dates: Dict[str, List[str]], hurst_method: HurstMethodType, params=Dict[str: any]):
+    def __init__(self, data: List[str], dates: Dict[str, List[str]], hurst_method: HurstMethodType, params=Dict[str, None]):
         """
         Parameters:
             data (List[str]): Input data names
@@ -21,7 +21,7 @@ class Launcher:
         self.hurst_method = hurst_method
         self.dates = dates
         self.params = params
-        
+
         start_date = min([pd.to_datetime(period['start_date']) for period in dates.values()])
         end_date = max([pd.to_datetime(period['end_date']) for period in dates.values()])
 
