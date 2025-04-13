@@ -8,7 +8,7 @@ class ScaledVariance(AbstractHurstEstimator):
     Description de la methode.
     """
 
-    def __init__(self, time_series: np.ndarray, max_scale: int = 100):
+    def __init__(self, time_series: np.ndarray, max_scale: int = 30):
         """
         Parameters:
             time_series (np.ndarray): The price time series data to analyze.
@@ -26,9 +26,9 @@ class ScaledVariance(AbstractHurstEstimator):
         """
         log_price = np.log(self.ts)
 
-        scales = np.arange(1, self.max_scale)
+        scales = np.arange(2, self.max_scale)
         sigmas = [np.std(np.subtract(log_price[lag:], log_price[:-lag])) for lag in scales]
 
-        slope, _ = linregress(np.log(scales),  np.log(sigmas))
+        slope = np.polyfit(np.log(scales),  np.log(sigmas), 1)[0]
 
         return slope

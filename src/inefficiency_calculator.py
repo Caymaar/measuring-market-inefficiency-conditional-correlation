@@ -1,8 +1,5 @@
 import pandas as pd
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from enums import HurstMethodType
+from .enums import HurstMethodType
 
 class InefficiencyCalculator:
     """
@@ -35,7 +32,7 @@ class InefficiencyCalculator:
         for i in range(len(time_series) - self.window + 1):
             window = time_series.iloc[i:i+self.window].values
 
-            hurst_method = self.hurst_method_type(window, *self.params['method_params'])
+            hurst_method = self.hurst_method_type(window, **self.params['hurst_params'])
             h = hurst_method.estimate()
 
             hurst_values.append(h)

@@ -12,8 +12,6 @@ class ScaledWindowedVariance(AbstractHurstEstimator):
     """
 
     def __init__(self, data: pd.Series, 
-                min_window: int = 2, 
-                max_window: int = None,
                 method: str = 'SD', 
                 exclusions: bool = False):
         """
@@ -28,15 +26,20 @@ class ScaledWindowedVariance(AbstractHurstEstimator):
         """
 
         self.data = data
+        self.method = method
+
+        if self.method not in ['SD', 'LD', 'BD']:
+            raise ValueError("Method must be one of 'SD', 'LD' or 'BD'.")
+        
+        self.exclusions = exclusions
         
         self.N = len(data)
         if self.N < 2:
             raise ValueError("Data must contain at least two points.")
         
-        self.min_window = int(np.log2(min_window))
-        self.max_window = int(np.floor(np.log2(self.N))) if max_window is None else int(np.log2(max_window))
+        self.min_window = int(np.log2(2))
+        self.max_window = int(np.floor(np.log2(self.N)))
 
-        print(f"Data length: {self.N}, Min window: {min_window}, Max window: {self.max_window}")
         self.window_sizes = 2 ** np.arange(self.min_window, self.max_window + 1)
     
     def _manage_detrending(self, window):
@@ -104,11 +107,6 @@ class ScaledWindowedVariance(AbstractHurstEstimator):
         return mask
 
     def estimate(self):
-        self.exclusions = self.exclusions
-        self.method = self.method
-
-        if self.method not in ['SD', 'LD', 'BD']:
-            raise ValueError("Method must be one of 'SD', 'LD' or 'BD'.")
 
         # Calcul des tailles de fenêtres valides et des écarts types moyens
         avg_sds = []            # Liste pour stocker l'écart type moyen pour chaque taille de fenêtre
@@ -140,13 +138,7 @@ class ScaledWindowedVariance(AbstractHurstEstimator):
         x = np.log2(valid_window_sizes)
         y = np.log2(avg_sds)
 
-        # Application du masque
-        if self.exclusions:
-            slope, intercept = np.polyfit(x[mask], y[mask], 1)
-        else:
-            slope, intercept = None, None
 
-        slope_all, intercept_all = np.polyfit(x, y, 1)
-        estimated_H = slope if slope is not None else slope_all
+        slope, _ = np.polyfit(x[mask], y[mask], 1)
 
-        return estimated_H, slope_all
+        return slope

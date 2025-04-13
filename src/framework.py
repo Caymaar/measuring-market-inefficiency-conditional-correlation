@@ -1,7 +1,8 @@
 from typing import Dict
 import pandas as pd
-from enums import HurstMethodType
-from inefficiency_calculator import InefficiencyCalculator
+from .enums import HurstMethodType
+from .inefficiency_calculator import InefficiencyCalculator
+from .results import Results
 
 
 class Framework:
@@ -9,7 +10,7 @@ class Framework:
     Framework buit to analyse the conditional correlations & the causality between markets' inefficiencies.
     """
 
-    def __init__(self, data: Dict[str, pd.Series], hurst_method: HurstMethodType, params=Dict[str, None]):
+    def __init__(self, data: pd.DataFrame, hurst_method: HurstMethodType, params=Dict[str, None]):
         """
         Instanciate the Framework by setting the input data and the parameters.
 
@@ -23,8 +24,8 @@ class Framework:
         self.params = params
 
         # Initialize the output series
-        self.inefficiency_series = {}
-        self.dcc_series = {}
+        self.inefficiency_df = pd.DataFrame()
+        self.dcc_df = pd.DataFrame()
         self.granger_tests = {}
 
     def _compute_inefficiency(self):
@@ -33,19 +34,19 @@ class Framework:
         """
 
         self.inefficiency_calculator = InefficiencyCalculator(self.hurst_method, self.params)
-        self.inefficiency_series = {undl: self.inefficiency_calculator.calculate_inefficiency(data) for undl, data in self.data.items()}
+        self.inefficiency_df = pd.DataFrame({col: self.inefficiency_calculator.calculate_inefficiency(self.data[col]) for col in self.data.columns})
 
     def _compute_conditional_correlations(self):
         """
         Call the DCC module and launch the dynamic conditional correlation.
         """
-        self.dcc_series = ...
+        pass
 
     def _compute_granger_causality(self):
         """
         Call the GrangerCausality module and launch the causality estimation throught VAR modeling and Granger causality test.
         """
-        self.granger_tests = ...
+        pass
 
     def run(self):
         """
@@ -56,12 +57,11 @@ class Framework:
         self._compute_conditional_correlations()
         self._compute_granger_causality()
 
-        # Return the results
-        res = Result(
-            inefficiency_series=self.inefficiency_series,
-            dcc_series=self.dcc_series,
+        res = Results(
+            inefficiency_df=self.inefficiency_df,
+            dcc_df=self.dcc_df,
             granger_tests=self.granger_tests
         )
 
-        res.generate_report()
+        res.generate()
 

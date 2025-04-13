@@ -10,7 +10,7 @@ class Launcher:
     Run the Framework for each set of dates.
     """
 
-    def __init__(self, data: List[str], dates: Dict[str, List[str]], hurst_method_type: HurstMethodType, params=Dict[str: any]):
+    def __init__(self, data: List[str], dates: Dict[str, List[str]], hurst_method: HurstMethodType, params=Dict[str, any]):
         """
         Parameters:
             data (List[str]): Input data names
@@ -18,12 +18,12 @@ class Launcher:
             hurst_method (HurstMethodType): Hurst estimation method enum
             params (Dict[str: any]): global parameters
         """
-        self.hurst_method = hurst_method_type
+        self.hurst_method = hurst_method
         self.dates = dates
         self.params = params
 
-        start_date = min([pd.to_datetime(period['start_date']) for period in dates.values()])
-        end_date = max([pd.to_datetime(period['end_date']) for period in dates.values()])
+        start_date = min([pd.to_datetime(period[0], dayfirst=True) for period in dates.values()]) - pd.DateOffset(days=self.params['window'])
+        end_date = max([pd.to_datetime(period[1], dayfirst=True) for period in dates.values()])
 
         global_data = {undl: utils.get_data(undl, start_date, end_date) for undl in data}
 
@@ -37,11 +37,20 @@ class Launcher:
             dates (Tuple[str, str]): Start and end date of the period
 
         Returns:
-
+            Dict[str, pd.Series]: Sub series for the period
         """
-        start_date, end_date = dates
-        
-        
+
+        start_date, end_date = pd.to_datetime(dates, dayfirst=True)
+
+        # Trouver l'index de la date la plus proche (remplissage vers l'avant)
+        start_date_index = self.df.index.get_indexer([start_date], method='ffill')[0]
+
+        # Calculer l'index de la date qui est self.params['window'] jours avant
+        start_date_index = max(0, start_date_index - self.params['window'])
+        start_date = self.df.index[start_date_index]
+
+        # Filter the DataFrame to get the sub-series
+        return self.df.loc[start_date:end_date]
     
     def _to_dataframe(self, data: Dict[str, pd.Series]) -> pd.DataFrame:
         """
@@ -73,6 +82,6 @@ class Launcher:
         """
         for period_name, set_dates in self.dates.items():
             print(f"Processing period: {period_name} with dates: {set_dates}")
-            period_data = self._get_sub_series(set_dates)
+            period_data = self._get_sub_dataframe(set_dates)
             framework = Framework(period_data, self.hurst_method, self.params)
             framework.run()
