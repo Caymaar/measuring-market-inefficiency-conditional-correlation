@@ -18,7 +18,7 @@ class Launcher:
             hurst_method (HurstMethodType): Hurst estimation method enum
             params (Dict[str: any]): global parameters
         """
-        self.hurst_method = hurst_method
+        self.hurst_method = hurst_method_type
         self.dates = dates
         self.params = params
 
