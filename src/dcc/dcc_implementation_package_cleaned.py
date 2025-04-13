@@ -4,6 +4,8 @@ import matplotlib.pyplot as plt
 from scipy.optimize import minimize
 from scipy.linalg import inv, sqrtm
 from scipy.special import gamma
+import sys
+sys.path.append('.')  # Ajout du répertoire parent au chemin d'importation
 from src.utils import get_data
 
 
@@ -191,10 +193,10 @@ if __name__ == "__main__":
     #     prices = S0 * np.exp(np.cumsum(returns))
     #     return pd.Series(prices, index=dates)
     # Charger les données et transformer en rendements
-    ftse100 = get_data('ftse100').pct_change().dropna()
-    ftsemib = get_data('ftsemib').pct_change().dropna()
-    sp500 = get_data('s&p500').pct_change().dropna()
-    ssec = get_data('ssec').pct_change().dropna()
+    ftse100 = get_data('ftse100')
+    ftsemib = get_data('ftsemib')
+    sp500 = get_data('s&p500')
+    ssec = get_data('ssec')
 
     def simulate_inefficiency(series):
         n = series.shape[0]
