@@ -3,6 +3,7 @@ import pandas as pd
 from enums import HurstMethodType
 from inefficiency_calculator import InefficiencyCalculator
 
+
 class Framework:
     """
     Framework buit to analyse the conditional correlations & the causality between markets' inefficiencies.
@@ -50,3 +51,17 @@ class Framework:
         """
         Run the full process for each start_date, end_date.
         """
+
+        self._compute_inefficiency()
+        self._compute_conditional_correlations()
+        self._compute_granger_causality()
+
+        # Return the results
+        res = Result(
+            inefficiency_series=self.inefficiency_series,
+            dcc_series=self.dcc_series,
+            granger_tests=self.granger_tests
+        )
+
+        res.generate_report()
+

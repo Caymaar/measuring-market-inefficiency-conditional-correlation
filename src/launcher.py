@@ -25,9 +25,11 @@ class Launcher:
         start_date = min([pd.to_datetime(period['start_date']) for period in dates.values()])
         end_date = max([pd.to_datetime(period['end_date']) for period in dates.values()])
 
-        self.global_data = {undl: utils.get_data(undl, start_date, end_date) for undl in data}
+        global_data = {undl: utils.get_data(undl, start_date, end_date) for undl in data}
+
+        self.df = self._to_dataframe(global_data)
     
-    def _get_sub_series(self, dates: Tuple[str, str]) -> Dict[str, pd.Series]:
+    def _get_sub_dataframe(self, dates: Tuple[str, str]) -> Dict[str, pd.Series]:
         """
         Create the sub series for a given period.
 
@@ -38,11 +40,32 @@ class Launcher:
 
         """
         start_date, end_date = dates
-        period_data = {
-            undl: data[(data.index >= start_date) & (data.index <= end_date)]
-            for undl, data in self.global_data.items()
-        }
-        return period_data
+        
+        
+    
+    def _to_dataframe(self, data: Dict[str, pd.Series]) -> pd.DataFrame:
+        """
+        Transform the data into a DataFrame.
+
+        Parameters:
+            data (Dict[str, pd.Series]): Input data
+
+        Returns:
+            pd.DataFrame: DataFrame with the data
+        """
+
+        common_index = pd.date_range(
+            start=max(series.index.min() for series in data.values()),
+            end=min(series.index.max() for series in data.values()),
+            freq='B',
+        )
+
+        full_sample = pd.DataFrame({
+            undl: series.reindex(common_index)
+            for undl, series in data.items()
+        })
+
+        return full_sample.ffill()
     
     def run_process(self):
         """
