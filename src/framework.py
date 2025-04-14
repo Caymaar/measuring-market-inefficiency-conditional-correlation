@@ -1,8 +1,9 @@
 from typing import Dict
 import pandas as pd
-from .enums import HurstMethodType
+from .enums import HurstMethodType, GarchMethodType
 from .inefficiency_calculator import InefficiencyCalculator
 from .results import Results
+from .garch.dcc.dcc_implementation_package_cleaned import mgarch
 
 
 class Framework:
@@ -10,17 +11,19 @@ class Framework:
     Framework buit to analyse the conditional correlations & the causality between markets' inefficiencies.
     """
 
-    def __init__(self, data: pd.DataFrame, hurst_method: HurstMethodType, params=Dict[str, None]):
+    def __init__(self, data: pd.DataFrame, hurst_method: HurstMethodType, garch_type: GarchMethodType, params=Dict[str, None]):
         """
         Instanciate the Framework by setting the input data and the parameters.
 
         Parameters:
             data (Dict[str: pd.Series]): Input data with the following format : Serie_Name = Serie_Data
             hurst_method (HurstMethodType): Hurst estimation method enum
+            garch_type (GarchMethodType): GARCH estimation method enum
             params (Dict[str: any]): global parameters
         """
         self.data = data
         self.hurst_method = hurst_method
+        self.garch_type = garch_type
         self.params = params
 
         # Initialize the output series
@@ -40,7 +43,7 @@ class Framework:
         """
         Call the DCC module and launch the dynamic conditional correlation.
         """
-        pass
+        garch = self.garch_type.value()
 
     def _compute_granger_causality(self):
         """

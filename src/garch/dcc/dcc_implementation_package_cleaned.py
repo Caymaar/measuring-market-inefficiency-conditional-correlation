@@ -9,40 +9,6 @@ sys.path.append('.')  # Ajout du répertoire parent au chemin d'importation
 from src.utils import get_data
 
 
-# ---------------------------
-# HurstCalculator (tel que fourni)
-# ---------------------------
-class HurstCalculator:
-    def __init__(self, k=10, window=250):
-        self.k = k
-        self.window = window
-
-    def get_hurst_exponent(self, time_series):
-        lags = range(2, self.k)
-        tau = [np.std(np.subtract(time_series[lag:], time_series[:-lag])) for lag in lags]
-        reg = np.polyfit(np.log(list(lags)), np.log(tau), 1)
-        return reg[0]
-
-    def rolling_hurst(self, prices: pd.Series) -> pd.Series:
-        log_prices = np.log(prices)
-        hurst_values = []
-        index_list = []
-        for i in range(len(log_prices) - self.window + 1):
-            window_data = log_prices.iloc[i:i + self.window].values
-            h = self.get_hurst_exponent(window_data)
-            hurst_values.append(h)
-            index_list.append(log_prices.index[i + self.window - 1])
-        return pd.Series(hurst_values, index=index_list)
-
-    def calculate_inefficiency(self, prices: pd.Series) -> pd.Series:
-        hurst_series = self.rolling_hurst(prices)
-        inefficiency_series = 0.5 - hurst_series
-        return inefficiency_series
-
-
-# ---------------------------
-# Classe mgarch mise à jour avec vraisemblance DCC réelle
-# ---------------------------
 class mgarch:
     def __init__(self, dist='norm'):
         if dist in ['norm', 't']:

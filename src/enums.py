@@ -1,5 +1,7 @@
 from enum import Enum
 from .hurst_estimation import *
+from .garch import *
+
 
 class HurstMethodType(Enum):
     """
@@ -11,11 +13,12 @@ class HurstMethodType(Enum):
     DFA_ANALYSIS = ...
     RS_ANALYSIS = ...
 
+
 class GarchMethodType(Enum):
     """
     Define the mapping between a multivariate garch method and its implementation.
     """
-    DCC = ...
+    DCC = mgarch
     BEKK = ...
     VECH = ...
     FULL_VECH = ...
