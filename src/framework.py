@@ -43,7 +43,10 @@ class Framework:
         """
         Call the DCC module and launch the dynamic conditional correlation.
         """
+        df_input = self.inefficiency_df.pct_change().dropna()
         garch = self.garch_type.value()
+        garch.fit(df_input)
+        self.dcc = garch.get_cc_matrix()
 
     def _compute_granger_causality(self):
         """
@@ -62,7 +65,7 @@ class Framework:
 
         res = Results(
             inefficiency_df=self.inefficiency_df,
-            dcc_df=self.dcc_df,
+            dcc=self.dcc,
             granger_tests=self.granger_tests
         )
 

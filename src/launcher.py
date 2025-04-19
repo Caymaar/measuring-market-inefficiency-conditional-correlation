@@ -1,7 +1,7 @@
 from typing import Dict, List, Tuple
 import pandas as pd
 from .framework import Framework
-from .enums import HurstMethodType
+from .enums import HurstMethodType, GarchMethodType
 from src import utils
 
 
@@ -10,7 +10,7 @@ class Launcher:
     Run the Framework for each set of dates.
     """
 
-    def __init__(self, data: List[str], dates: Dict[str, List[str]], hurst_method: HurstMethodType, params=Dict[str, any]):
+    def __init__(self, data: List[str], dates: Dict[str, List[str]], hurst_method: HurstMethodType, garch_method: GarchMethodType, params=Dict[str, any]):
         """
         Parameters:
             data (List[str]): Input data names
@@ -19,6 +19,7 @@ class Launcher:
             params (Dict[str: any]): global parameters
         """
         self.hurst_method = hurst_method
+        self.garch_method = garch_method
         self.dates = dates
         self.params = params
 
@@ -83,5 +84,5 @@ class Launcher:
         for period_name, set_dates in self.dates.items():
             print(f"Processing period: {period_name} with dates: {set_dates}")
             period_data = self._get_sub_dataframe(set_dates)
-            framework = Framework(period_data, self.hurst_method, self.params)
+            framework = Framework(period_data, self.hurst_method, self.garch_method, self.params)
             framework.run()

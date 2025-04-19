@@ -1,5 +1,8 @@
 import pandas as pd
 import matplotlib.pyplot as plt
+import numpy as np
+from itertools import combinations
+import math
 
 
 class Results:
@@ -8,7 +11,7 @@ class Results:
     Save the figures and the tables in the output directory.
     """
 
-    def __init__(self, inefficiency_df: pd.DataFrame, dcc_df: pd.DataFrame, granger_tests: pd.DataFrame, plot: bool = True):
+    def __init__(self, inefficiency_df: pd.DataFrame, dcc: np.ndarray, granger_tests: pd.DataFrame, plot: bool = True):
         """
         Parameters:
             inefficiency_series (pd.DataFrame): DataFrame containing the inefficiency series
@@ -16,7 +19,7 @@ class Results:
             granger_tests (pd.DataFrame): DataFrame containing the Granger causality test results
         """
         self.inefficiency_df = inefficiency_df
-        self.dcc_df = dcc_df
+        self.dcc = dcc
         self.granger_tests = granger_tests
         
         self.plot = plot
@@ -50,26 +53,36 @@ class Results:
             plt.show()
         plt.close()
         
-        if self.dcc_df.empty:
+        if len(self.dcc) == 0:
             print("DCC series is empty. Skipping DCC plot.")
         else:
-            # Plotting the dcc series
-            num_series = self.dcc_df.shape[1]
-            fig, axes = plt.subplots(num_series, 1, figsize=(10, 5 * num_series), sharex=True)
+            T, N, _ = self.dcc.shape
+            paires = list(combinations(range(N), 2))
+            M = len(paires)
 
-            for i, column in enumerate(self.dcc_df.columns):
-                axes[i].plot(self.dcc_df.index, self.dcc_df[column], label=column, color='blue')
-                axes[i].set_title(f'Dynamic Conditional Correlation : {column}', fontsize=14)
-                axes[i].set_xlabel('Time', fontsize=12)
-                axes[i].set_ylabel('DCC', fontsize=12)
-                axes[i].grid(True, linestyle='--', alpha=0.6)
-                axes[i].legend(fontsize=10)
+            # Définir la grille (nrows x ncols) la plus carrée possible
+            ncols = math.ceil(math.sqrt(M))
+            nrows = math.ceil(M / ncols)
 
+            fig, axs = plt.subplots(nrows, ncols, figsize=(4*ncols, 3*nrows))
+            axes = axs.ravel()
+
+            for idx, (i, j) in enumerate(paires):
+                ax = axes[idx]
+                corr_series = self.dcc[:, i, j]
+                ax.plot(corr_series)
+                ax.set_title(f"Corrélation {i+1}-{j+1}")
+                ax.set_xlabel("Date")
+                ax.set_ylabel("ρₜ")
+            
+            # Retirer les axes inutilisés
+            for k in range(M, len(axes)):
+                fig.delaxes(axes[k])
+
+            # Ajustement et légende si besoin (ex. légende globale)
             plt.tight_layout()
-            plt.savefig('output/dcc_series_plot.png', dpi=300)
-            if self.plot:
-                plt.show()
-            plt.close()
+            # fig.legend([...], bbox_to_anchor=(1.05,1), loc='upper left')
+            plt.show()
 
         if self.granger_tests == {}:
             print("Granger causality test results are empty. Skipping Granger causality plot.")

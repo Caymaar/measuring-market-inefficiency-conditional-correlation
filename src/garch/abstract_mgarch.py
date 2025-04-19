@@ -31,9 +31,9 @@ class MultivariateGARCH(ABC):
     @abstractmethod
     def get_cc_matrix(self) -> np.ndarray:
         """
-        Get the conditional covariance matrix over time (3D array).
+        Get the conditional correlation matrix over time (3D array).
 
         Returns:
-            np.ndarray: The conditional covariance matrix over time.
+            np.ndarray: The conditional correlation matrix over time.
         """
         pass
