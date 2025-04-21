@@ -761,6 +761,7 @@ dependencies = [
     { name = "hurst" },
     { name = "ipykernel" },
     { name = "matplotlib" },
+    { name = "mgarch" },
     { name = "numpy" },
     { name = "openpyxl" },
     { name = "pandas" },
@@ -780,6 +781,7 @@ requires-dist = [
     { name = "hurst", specifier = ">=0.0.5" },
     { name = "ipykernel", specifier = ">=6.29.5" },
     { name = "matplotlib", specifier = ">=3.10.1" },
+    { name = "mgarch", specifier = ">=0.3.0" },
     { name = "numpy", specifier = ">=2.2.4" },
     { name = "openpyxl" },
     { name = "pandas", specifier = ">=2.2.3" },
@@ -789,6 +791,19 @@ requires-dist = [
     { name = "statsmodels", specifier = ">=0.14.4" },
     { name = "stochastic", specifier = ">=0.4.0" },
     { name = "yfinance", specifier = ">=0.2.55" },
+]
+
+[[package]]
+name = "mgarch"
+version = "0.3.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "numpy" },
+    { name = "scipy" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/83/98/cdeb8100d880d72b817b82d4cac95c0dc346f512e3d83e4e9c9af593cc3f/mgarch-0.3.0.tar.gz", hash = "sha256:4b81e5e3163f4c707f7b36e86f6da390abd825bcd2587b1494b3dcedb6587725", size = 3966 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/6e/42/3e598fac0ba4b8c42c54eee441a1d90ddc9f809a83b4813b82768a0f5459/mgarch-0.3.0-py3-none-any.whl", hash = "sha256:77cf35e9d8ef3e0509d1f169907a797f2cf42da1eaa51f53e89b305736410f11", size = 4232 },
 ]
 
 [[package]]

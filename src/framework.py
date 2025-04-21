@@ -4,6 +4,7 @@ from .enums import HurstMethodType, GarchMethodType
 from .inefficiency_calculator import InefficiencyCalculator
 from .results import Results
 from .garch.dcc.dcc_implementation_package_cleaned import mgarch
+import matplotlib.pyplot as plt
 
 
 class Framework:
@@ -43,10 +44,19 @@ class Framework:
         """
         Call the DCC module and launch the dynamic conditional correlation.
         """
-        df_input = self.inefficiency_df.pct_change().dropna()
+        # df_input = self.inefficiency_df.pct_change().dropna()
+        df_input = self.inefficiency_df
         garch = self.garch_type.value()
         garch.fit(df_input)
         self.dcc = garch.get_cc_matrix()
+        plt.figure(figsize=(10, 6))
+        plt.plot(df_input.index, self.dcc, label='FTSE100 & FTSEMIB')
+        plt.xlabel("Date")
+        plt.ylabel("Conditional Correlation")
+        plt.title("DCC(1,1) : Conditional Correlation between FTSE100 and FTSEMIB")
+        plt.legend()
+        plt.tight_layout()
+        plt.show()
 
     def _compute_granger_causality(self):
         """
@@ -60,6 +70,7 @@ class Framework:
         """
 
         self._compute_inefficiency()
+        self.inefficiency_df.to_excel('output/inefficiency.xlsx', index=True)
         self._compute_conditional_correlations()
         self._compute_granger_causality()
 

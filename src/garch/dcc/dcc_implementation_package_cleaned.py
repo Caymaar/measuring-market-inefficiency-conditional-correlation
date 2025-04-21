@@ -78,13 +78,14 @@ class mgarch:
             ll += -0.5 * (logdet + term)
         return ll  # On maximise la vraisemblance (ou on minimise son opposé)
 
-    def fit(self, returns):
+    def fit(self, returns: pd.DataFrame):
         """
         Estime le modèle mgarch sur les retours (dans notre cas, les indices d’inefficience) :
         - L’ensemble des retours (self.rt) est décentré.
         - Pour chaque série, on estime un modèle GARCH(1,1) afin d’obtenir D_t.
         - Ensuite, on estime les paramètres DCC a et b en maximisant la log-vraisemblance du modèle DCC.
         """
+        # returns = returns.values
         # Ici, returns doit être une structure (ex. array) 2D de dimension (T x N)
         self.rt = np.matrix(returns)
         self.T = self.rt.shape[0]
@@ -111,6 +112,25 @@ class mgarch:
 
         return {'mu': self.mean, 'alpha': self.a, 'beta': self.b}
 
+    def get_cc_matrix(self):
+        N = self.N
+        a, b = self.a, self.b
+        T = self.T
+
+        z = np.array(self.rt) / self.D_t  # résidus standardisés (T x N)
+        Q_bar = np.cov(z, rowvar=False)
+        Q_t = np.zeros((T, N, N))
+        R_t = np.zeros((T, N, N))
+        Q_t[0] = Q_bar.copy()
+        for t in range(1, T):
+            z_prev = z[t - 1, :].reshape(self.N, 1)
+            Q_t[t] = (1 - a - b) * Q_bar + a * (z_prev @ z_prev.T) + b * Q_t[t - 1]
+            diag_Q = np.sqrt(np.diag(Q_t[t]))
+            inv_diag = np.diag(1.0 / diag_Q)
+            R_t[t] = inv_diag @ Q_t[t] @ inv_diag
+        cond_corr = [R_t[t][0, 1] for t in range(T)]
+        return cond_corr
+    
     def predict(self, ndays=1):
         """
         Prédit la matrice de covariance conditionnelle pour ndays.
@@ -164,22 +184,23 @@ if __name__ == "__main__":
     sp500 = get_data('s&p500')
     ssec = get_data('ssec')
 
-    def simulate_inefficiency(series):
-        n = series.shape[0]
-        dates = series.index
-        ineff_values = np.random.uniform(-0.3, 0.3, n)
-        return pd.Series(ineff_values, index=dates)
+    # def simulate_inefficiency(series):
+    #     n = series.shape[0]
+    #     dates = series.index
+    #     ineff_values = np.random.uniform(-0.3, 0.3, n)
+    #     return pd.Series(ineff_values, index=dates)
 
 
-    ineff_ftse100 = simulate_inefficiency(ftse100).rename('FTSE100')
-    ineff_ftsemib = simulate_inefficiency(ftsemib).rename('FTSEMIB')
-    ineff_sp500 = simulate_inefficiency(sp500).rename('SP500')
-    ineff_ssec = simulate_inefficiency(ssec).rename('SSEC')
+    # ineff_ftse100 = simulate_inefficiency(ftse100).rename('FTSE100').pct_change().dropna()
+    # ineff_ftsemib = simulate_inefficiency(ftsemib).rename('FTSEMIB').pct_change().dropna()
+    # ineff_sp500 = simulate_inefficiency(sp500).rename('SP500').pct_change().dropna()
+    # ineff_ssec = simulate_inefficiency(ssec).rename('SSEC').pct_change().dropna()
 
-    # Concaténer les indices d'inefficience dans un DataFrame (sur les dates communes)
-    ineff_df = pd.concat([ineff_ftse100, ineff_ftsemib, ineff_sp500, ineff_ssec], axis=1, join='inner')
+    # # Concaténer les indices d'inefficience dans un DataFrame (sur les dates communes)
+    # ineff_df = pd.concat([ineff_ftse100, ineff_ftsemib, ineff_sp500, ineff_ssec], axis=1, join='inner')
+    ineff_df = pd.read_excel("output/inefficiency.xlsx", index_col=0, parse_dates=True)
     # Décentrer les séries (moyenne nulle)
-    ineff_df = ineff_df - ineff_df.mean()
+    ineff_df = ineff_df
     print("Inefficiency indices (first 5 rows):")
     print(ineff_df.head())
 
