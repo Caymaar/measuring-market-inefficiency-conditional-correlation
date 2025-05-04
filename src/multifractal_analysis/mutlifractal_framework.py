@@ -235,23 +235,38 @@ class MultifractalFramework:
         )
         fig.show()
         # multifractal
-        if shuffle:
+        if shuffle and not surogate:
             # shuffle only
             fig1 = go.Figure()
-            fig1.add_trace(go.Scatter(x=self.alpha, y=self.f_alpha, mode="lines", name="f(α)"))
-            fig1.add_trace(go.Scatter(x=self.alpha_shuffle, y=self.f_alpha_shuffle, mode="lines", name="f(α) shuffle"))
+            fig1.add_trace(go.Scatter(x=self.alpha, y=self.f_alpha, mode="lines+markers", name="f(α)"))
+            fig1.add_trace(go.Scatter(x=self.alpha_shuffle, y=self.f_alpha_shuffle, mode="lines+markers", name="f(α) shuffle"))
             fig1.update_layout(
                 title="Spectre multifractal shuffle", xaxis_title="α", yaxis_title="f(α)", template="plotly_white"
             )
             fig1.show()
-        if surogate:
+        elif surogate and not shuffle:
             # surogate only
             fig2 = go.Figure()
-            fig2.add_trace(go.Scatter(x=self.alpha, y=self.f_alpha, mode="lines", name="f(α)"))
+            fig2.add_trace(go.Scatter(x=self.alpha, y=self.f_alpha, mode="lines+markers", name="f(α)"))
             fig2.add_trace(
-                go.Scatter(x=self.alpha_surogate, y=self.f_alpha_surogate, mode="lines", name="f(α) surogate")
+                go.Scatter(x=self.alpha_surogate, y=self.f_alpha_surogate, mode="lines+markers", name="f(α) surogate")
             )
             fig2.update_layout(
                 title="Spectre multifractal surogate", xaxis_title="α", yaxis_title="f(α)", template="plotly_white"
             )
             fig2.show()
+        elif surogate and shuffle:
+            # both
+            fig3 = go.Figure()
+            fig3.add_trace(go.Scatter(x=self.alpha, y=self.f_alpha, mode="lines+markers", name="f(α)"))
+            fig3.add_trace(go.Scatter(x=self.alpha_shuffle, y=self.f_alpha_shuffle, mode="lines+markers", name="f(α) shuffle"))
+            fig3.add_trace(
+                go.Scatter(x=self.alpha_surogate, y=self.f_alpha_surogate, mode="lines+markers", name="f(α) surogate")
+            )
+            fig3.update_layout(
+                title="Spectre multifractal shuffle & surogate",
+                xaxis_title="α",
+                yaxis_title="f(α)",
+                template="plotly_white",
+            )
+            fig3.show()
