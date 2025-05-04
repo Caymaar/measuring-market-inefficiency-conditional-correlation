@@ -9,8 +9,11 @@ class HurstMethodType(Enum):
     """
     SCALED_VARIANCE = ScaledVariance
     SCALED_WINDOWED_VARIANCE = ScaledWindowedVariance
-    AGGREGATE_VARIANCE = ...
-    DFA_ANALYSIS = ...
+    AGGREGATE_VARIANCE = AggregateVarianceHurstEstimator
+    ABSOLUTE_MOMENTS = AbsoluteMomentsHurstEstimator
+    DFA_ANALYSIS = DfaHurstEstimator
+    HIGUCHI_ANALYSIS = HiguchiHurstEstimator
+    TTA_ANALYSIS = TtaHurstEstimator
     RS_ANALYSIS = ...
 
 
