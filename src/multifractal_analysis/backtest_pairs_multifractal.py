@@ -70,34 +70,42 @@ if __name__ == "__main__":
         port_ret = mf.portfolio_returns.dropna()
 
         # Recalage des dates pour le plot
+        common_index = port_ret.index.intersection(ret1.index).intersection(ret2.index)
+        ret1 = ret1.loc[common_index]
+        ret2 = ret2.loc[common_index]
+        port_ret = port_ret.loc[common_index]
         start = mf.positions.index[0]
         cum1 = (1 + ret1.loc[start:]).cumprod()
         cum2 = (1 + ret2.loc[start:]).cumprod()
         cum_strat = (1 + port_ret).cumprod()
+        porfolio_50_50_returns = 0.5 * ret1.loc[start:] + 0.5 * ret2.loc[start:]
+        porfolio_50_50 = (1 + porfolio_50_50_returns).cumprod()
 
         # --- Affichage des rendements cumulés ---
         fig = go.Figure()
         fig.add_trace(go.Scatter(x=cum1.index, y=cum1, mode="lines", name=f"{ticker1} Cumulative"))
         fig.add_trace(go.Scatter(x=cum2.index, y=cum2, mode="lines", name=f"{ticker2} Cumulative"))
         fig.add_trace(go.Scatter(x=cum_strat.index, y=cum_strat, mode="lines", name="Strategy Cumulative"))
+        fig.add_trace(go.Scatter(x=porfolio_50_50.index, y=porfolio_50_50, mode="lines", name="50/50 Portfolio"))
         fig.update_layout(
             title=f"Cumulative Returns: {ticker1} vs {ticker2}", xaxis_title="Date", yaxis_title="Cumulative Returns"
         )
         fig.show()
 
         # --- Statistiques de performance ---
-        stats_strat = compute_performance_stats(port_ret.loc[start:])
-        stats1 = compute_performance_stats(ret1.loc[start:])
-        stats2 = compute_performance_stats(ret2.loc[start:])
+        stats_strat = compute_performance_stats(port_ret.loc[start:]) * 100
+        stats1 = compute_performance_stats(ret1.loc[start:]) * 100
+        stats2 = compute_performance_stats(ret2.loc[start:]) * 100
+        stats_50_50 = compute_performance_stats(porfolio_50_50_returns.loc[start:]) * 100
 
         results = pd.DataFrame(
             {
-                "Annual Return": [stats_strat[0], stats1[0], stats2[0]],
-                "Annual Volatility": [stats_strat[1], stats1[1], stats2[1]],
-                "Sharpe Ratio": [stats_strat[2], stats1[2], stats2[2]],
-                "Max Drawdown": [stats_strat[3], stats1[3], stats2[3]],
-            },
-            index=["Strategy", ticker1, ticker2],
+                "Strategy": ["ModifOverlap120", f"Long Only {ticker1}", f"Long Only {ticker2}", "50/50 Portfolio"],
+                "Annual Return": [stats_strat[0], stats1[0], stats2[0], stats_50_50[0]],
+                "Annual Volatility": [stats_strat[1], stats1[1], stats2[1], stats_50_50[1]],
+                "Sharpe Ratio": [stats_strat[2], stats1[2], stats2[2], stats_50_50[2]],
+                "Max Drawdown": [stats_strat[3], stats1[3], stats2[3], stats_50_50[3]],
+            }
         )
 
         # Affichage des résultats
@@ -106,6 +114,6 @@ if __name__ == "__main__":
         os.makedirs(output_dir, exist_ok=True)
 
         out_fn = os.path.join(output_dir, f"performance_{ticker1}_{ticker2}.csv")
-        results.to_csv(out_fn)
+        results.to_csv(out_fn, index=False)
         print(f"\n=== Performance for {ticker1} vs {ticker2} ===")
         print(results)
