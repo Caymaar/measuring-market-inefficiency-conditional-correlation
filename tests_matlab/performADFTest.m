@@ -1,18 +1,14 @@
-function ADFresults = performADFTest(data, lags)
+function [ADFStats, ADFpValues] = performADFTest(data, lags)
     varNames = data.Properties.VariableNames;
     n = numel(varNames);
 
-    ADFresults = table('Size', [n, 4], ...
-        'VariableTypes', {'string', 'double', 'double', 'double'}, ...
-        'VariableNames', {'MarketIndex', 'ADFStatistic', 'LagOrder', 'pValue'});
+    ADFStats = zeros(1, n);
+    ADFpValues = zeros(1, n);
 
     for i = 1:n
-        series = data.(varNames{i});
-        [~, p, stat, ~, ~] = adftest(series, 'Lags', lags);
-
-        ADFresults.MarketIndex(i) = varNames{i};
-        ADFresults.ADFStatistic(i) = stat;
-        ADFresults.LagOrder(i) = lags;
-        ADFresults.pValue(i) = p;
+        series = data.(varNames{i});  % ✅ Correct
+        [~, p, stat] = adftest(series, 'Lags', lags);
+        ADFStats(i) = stat;
+        ADFpValues(i) = p;
     end
 end

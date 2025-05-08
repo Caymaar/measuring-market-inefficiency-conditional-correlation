@@ -1,18 +1,14 @@
-function Archresults = performARCHTest(data, lags)
+function [ARCHStats, ARCHpValues] = performARCHTest(data, lags)
     varNames = data.Properties.VariableNames;
     n = numel(varNames);
 
-    Archresults = table('Size', [n, 4], ...
-        'VariableTypes', {'string', 'double', 'double', 'double'}, ...
-        'VariableNames', {'MarketIndex', 'Chisquared', 'df', 'pValue'});
+    ARCHStats = zeros(1, n);
+    ARCHpValues = zeros(1, n);
 
     for i = 1:n
-        series = data.(varNames{i});
-        [~, pValue, stat, ~] = archtest(series, 'Lags', lags);
-
-        Archresults.MarketIndex(i) = varNames{i};
-        Archresults.Chisquared(i) = stat;
-        Archresults.df(i) = lags;
-        Archresults.pValue(i) = pValue;
+        series = rmmissing(data.(varNames{i}));
+        [~, pValue, stat] = archtest(series, 'Lags', lags);
+        ARCHStats(i) = stat;
+        ARCHpValues(i) = pValue;
     end
 end
