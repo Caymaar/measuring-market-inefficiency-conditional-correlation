@@ -50,7 +50,7 @@ class EstimatorComparison:
         Returns:
             np.ndarray: A synthetic fBm time series
         """
-        fbm = FBM(n=simulation_length, hurst=true_hurst)
+        fbm = FBM(n=simulation_length, hurst=true_hurst, method="cholesky")
 
         return fbm.fbm()
     

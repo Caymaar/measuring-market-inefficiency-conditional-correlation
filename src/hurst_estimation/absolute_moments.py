@@ -1,78 +1,61 @@
-
 import numpy as np
-from typing import List
-from ..lib_hurst.AddMethods import AddMethods
+from scipy.stats import linregress
 from .abstract_estimation import AbstractHurstEstimator
 
 
-class AbsoluteMomentsHurstEstimator(AbstractHurstEstimator, AddMethods):
+class AbsoluteMomentsEstimator(AbstractHurstEstimator):
     """
-    Hurst exponent estimator using the Absolute Moments method.
+    Estimateur de Hurst par la méthode des moments absolus généralisés
     """
-
-    def __init__(self, time_series: np.ndarray, minimal: int = 20,
-                 method: str = 'L2'):
+    
+    def __init__(self, time_series: np.ndarray, q: float = 1.0, tau_min: int = 1, tau_max: int = None, num_tau: int = 20):
         """
-        Initialize the Absolute Moments estimator.
-
-        Parameters
-        ----------
-        time_series : np.ndarray
-            The time series data to analyze.
-        minimal : int, optional
-            Minimum aggregation scale (default is 20).
-        method : str, optional
-            Curve fitting method, either 'L2' or 'L1' (default is 'L2').
+        Parameters:
+            q: Ordre du moment (1 par défaut pour les moments absolus)
+            tau_min: Délai minimal 
+            tau_max: Délai maximal (demi-longueur de la série par défaut)
+            num_tau: Nombre de délais à analyser
         """
         super().__init__(time_series)
-        self.minimal = minimal
-        self.method = method
+        self.q = q
+        self.tau_min = tau_min
+        self.tau_max = tau_max if tau_max else len(time_series) // 2
+        self.num_tau = num_tau
 
     def estimate(self) -> float:
-        """
-        Estimate the Hurst exponent from the provided data using
-        the Absolute Moments method.
-
-        Returns
-        -------
-        float
-            The estimated Hurst exponent.
-        """
-        N = len(self.ts)
-        opt_n = self.findOptN(N, minimal=self.minimal)
-        scales = self.Divisors(opt_n, minimal=self.minimal)
-        ts_segment = self.ts[N - opt_n:]
-        mean_ts = np.mean(ts_segment)
-        moments: List[float] = []
-        for m in scales:
-            k = opt_n // m
-            subs = np.reshape(ts_segment, (k, m))
-            block_means = np.mean(subs, axis=1)
-            moments.append(np.linalg.norm(block_means - mean_ts, 1) / len(block_means))
-        slope = self._fit_log_log(scales, moments)
-        return slope + 1
-
-    def _fit_log_log(self, scales: List[int],
-                     values: List[float]) -> float:
-        """
-        Fit a line to the log-log relationship of scales and values.
-
-        Parameters
-        ----------
-        scales : List[int]
-            Aggregation scales.
-        values : List[float]
-            Corresponding absolute moment statistics.
-
-        Returns
-        -------
-        float
-            Slope of the fitted line in log-log space.
-        """
-        X = np.vstack([np.log10(scales), np.ones(len(values))]).T
-        y = np.log10(values)
-        if self.method == 'L2':
-            slope, _ = np.linalg.lstsq(X, y, rcond=None)[0]
-        else:
-            slope = self.OLE_linprog(X, y.reshape(-1, 1))[0]
-        return slope
+        ts = self.ts
+        n = len(ts)
+        q = self.q
+        
+        taus = np.logspace(np.log10(self.tau_min), 
+                          np.log10(self.tau_max),
+                          num=self.num_tau,
+                          base=10).astype(int)
+        taus = np.unique(taus[taus < n//2])
+        
+        moments = []
+        log_taus = []
+        
+        for tau in taus:
+            if tau >= n:
+                continue
+                
+            diffs = np.abs(ts[tau:] - ts[:-tau])
+            
+            if len(diffs) == 0:
+                continue
+                
+            m = np.nanmean(diffs ** q)
+            
+            if m <= 0:
+                continue
+                
+            moments.append(m)
+            log_taus.append(np.log(tau))
+            
+        if len(log_taus) < 2:
+            raise ValueError("Pas assez de points pour la régression")
+            
+        slope, _, _, _, _ = linregress(log_taus, np.log(moments))
+        
+        return slope / q

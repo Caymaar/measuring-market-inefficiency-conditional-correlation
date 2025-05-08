@@ -8,15 +8,16 @@ class ComputeRS:
 
     @staticmethod
     def rs_statistic(series, window_size=0):
-        if window_size < len(series):
+        if window_size > len(series) or window_size == 0:
             window_size = len(series)
-        s = series.iloc[len(series) - window_size: len(series)]
-        mean = np.mean(s)
-        y = s - mean
+
+        s = series[-window_size:]
+        y = s - np.mean(s)
         r = np.max(np.cumsum(y)) - np.min(np.cumsum(y))
         sigma = np.std(s)
+        
         return r / sigma
-
+    
     @staticmethod
     def compute_S_modified(series, chin=False):
         s = series
@@ -54,11 +55,11 @@ class ComputeRS:
         return s_quared
 
     @staticmethod
-    def rs_modified_statistic(series, window_size=0, chin=False):
-        if window_size > len(series):
+    def rs_modified_statistic(series: np.ndarray, window_size=0, chin=False):
+        if window_size > len(series) or window_size == 0:
             window_size = len(series)
 
-        s = series.iloc[len(series) - window_size: len(series)]
+        s = series[-window_size:]
         y = s - np.mean(s)
         r = np.max(np.cumsum(y)) - np.min(np.cumsum(y))
         sigma = np.sqrt(ComputeRS.compute_S_modified(s, chin))

@@ -27,29 +27,10 @@ class ModifiedRSMethod(AbstractHurstEstimator):
         Returns:
             float: exposant de Hurst estimé.
         """
-        rs = ComputeRS.rs_statistic(
+        rs = ComputeRS.rs_modified_statistic(
             series=self.time_series,
             window_size=self.window_size,
         )
         hurst = np.log(rs) / np.log(self.window_size)
 
         return hurst
-
-    def rolling_rs(self):
-        """
-        Calcule le Hurst exponent en utilisant la méthode R/S sur une fenêtre glissante.
-
-        Returns:
-            np.ndarray: tableau contenant les valeurs du Hurst exponent.
-        """
-        hurst_exponents = []
-        for i in range(len(self.time_series) - self.window_size + 1):
-            window = self.time_series[i:i + self.window_size]
-            rs = ComputeRS.rs_statistic(
-                series=window,
-                window_size=self.window_size,
-            )
-            hurst = np.log(rs) / np.log(self.window_size)
-            hurst_exponents.append(hurst)
-
-        return np.array(hurst_exponents)
