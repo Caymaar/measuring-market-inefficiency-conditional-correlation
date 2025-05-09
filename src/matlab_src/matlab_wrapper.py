@@ -9,7 +9,7 @@ class MatlabEngineWrapper:
         # Démarre une instance MATLAB
         self.engine = matlab.engine.start_matlab()
         self.engine.addpath(matlab_script_path, nargout=0)
-        self.engine.addpath(self.engine.genpath('tests_matlab/mfe-toolbox-main'), nargout=0)
+        self.engine.addpath(self.engine.genpath(f'{matlab_script_path}/mfe-toolbox-main'), nargout=0)
         print(self.engine.which('dcc', nargout=1))
 
     def stop(self):
@@ -240,47 +240,3 @@ class MatlabEngineWrapper:
         })
         
         return granger_df
-
-def main():
-    # Charger les données
-    inefficiency_data = pd.read_excel('tests_matlab/inefficiency.xlsx')
-
-    # Initialiser le wrapper MATLAB
-    matlab_wrapper = MatlabEngineWrapper('tests_matlab')
-
-    # Exécuter les tests
-    data_diff, adf_result = matlab_wrapper.ensure_stationarity(inefficiency_data.iloc[:, 1:], lag=9, threshold=0.05)
-    arch_df = matlab_wrapper.perform_arch_test(data_diff, 5)
-
-    # Afficher les résultats
-    print("=== Résultats ADF ===")
-    print(adf_result) 
-    print("\n=== Résultats ARCH ===")
-    print(arch_df)
-
-    # df_conds_vol, df_resids = matlab_wrapper.estimate_garch_volatility(data_diff)
-
-    # # Sauvegarde ou affichage
-    # print("\n=== Volatilité conditionnelle ===")
-    # print(df_conds_vol.head())
-    # print("\n=== Résidus standardisés ===")
-    # print(df_resids.head())
-
-    #cov_dcc, corr_dcc = matlab_wrapper.compute_all_dcc(data_diff)
-
-    var_results, granger_results = matlab_wrapper.compute_all_var(data_diff)
-    print("\n=== Résultats VAR ===")
-    for key, result in var_results.items():
-        print(f"\n=== VAR entre {key} ===")
-        print(result)
-    
-    print("\n=== Résultats Granger ===")
-    for key, result in granger_results.items():
-        print(f"\n=== Granger entre {key} ===")
-        print(result)
-
-    # Fermer l'instance MATLAB
-    matlab_wrapper.stop()
-
-if __name__ == "__main__":
-    main()

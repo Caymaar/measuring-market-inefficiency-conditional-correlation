@@ -4,6 +4,7 @@ from .enums import HurstMethodType, GarchMethodType
 from .inefficiency_calculator import InefficiencyCalculator
 from .results import Results
 from .garch.dcc.dcc_implementation_package_cleaned import mgarch
+from .matlab_src.matlab_wrapper import MatlabEngineWrapper
 import matplotlib.pyplot as plt
 
 
@@ -26,6 +27,7 @@ class Framework:
         self.hurst_method = hurst_method
         self.garch_type = garch_type
         self.params = params
+        self.matlab_wrapper = MatlabEngineWrapper('src/matlab_src/matlab_scripts')
 
         # Initialize the output series
         self.inefficiency_df = pd.DataFrame()
@@ -70,15 +72,40 @@ class Framework:
         """
 
         self._compute_inefficiency()
-        self.inefficiency_df.to_excel('output/inefficiency.xlsx', index=True)
-        self._compute_conditional_correlations()
-        self._compute_granger_causality()
+
+        # Compute ADF test and ARCH test
+        data_diff, adf_result = self.matlab_wrapper.ensure_stationarity(self.inefficiency_df, lag=9, threshold=0.05)
+        arch_df = self.matlab_wrapper.perform_arch_test(data_diff, 5)
+        
+        print("=== Résultats ADF ===")
+        print(adf_result) 
+        print("\n=== Résultats ARCH ===")
+        print(arch_df)
+
+        # self._compute_conditional_correlations()
+        # self._compute_granger_causality()
+
+        df_conds_vol, df_resids = self.matlab_wrapper.estimate_garch_volatility(data_diff)
+        cov_dcc, corr_dcc = self.matlab_wrapper.compute_all_dcc(data_diff)
+
+        var_results, granger_results = self.matlab_wrapper.compute_all_var(data_diff)
+        print("\n=== Résultats VAR ===")
+        for key, result in var_results.items():
+            print(f"\n=== VAR entre {key} ===")
+            print(result)
+        
+        print("\n=== Résultats Granger ===")
+        for key, result in granger_results.items():
+            print(f"\n=== Granger entre {key} ===")
+            print(result)
 
         res = Results(
             inefficiency_df=self.inefficiency_df,
-            dcc=self.dcc,
+            dcc=corr_dcc,
             granger_tests=self.granger_tests
         )
 
         res.generate()
+        # Fermer l'instance MATLAB
+        self.matlab_wrapper.stop()
 
