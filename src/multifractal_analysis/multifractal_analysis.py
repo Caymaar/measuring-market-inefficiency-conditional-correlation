@@ -30,14 +30,11 @@ if __name__ == "__main__":
 
         mf = MultifractalFramework(
             returns,
-            ticker1="",
-            ticker2="",
             window_hurst=0,
             window_mfdfa=1004,
             q_list=q_list,
             scales=scales,
             order=1,
-            backtest=False,
             verbose=True,
         )
         mf.compute_multifractal()
@@ -48,46 +45,44 @@ if __name__ == "__main__":
             mode="lines+markers",
             name=name
         ))
+        # fig.show()
 
     # --- Spectre multifractal d'une marche aléatoire ---
     # Génération d'une marche aléatoire de même longueur que FTSE100
-    # ref = get_data(file_name[0])
-    # ref_returns = np.log(ref).diff().dropna().loc['1998-01-02':'2025-03-31']
-    #
-    # # Utilisation directe des retours aléatoires
-    # random_returns = pd.Series(
-    #     np.random.randn(len(ref_returns)),
-    #     index=ref_returns.index,
-    #     name='Random Returns'
-    # )
-    # print(f"Random Returns → kurtosis: {kurtosis(random_returns):.4f}, length: {len(random_returns)}")
-    #
-    # mf_rw = MultifractalFramework(
-    #     random_returns,
-    #     ticker1="",
-    #     ticker2="",
-    #     window_hurst=0,
-    #     window_mfdfa=1004,
-    #     q_list=q_list,
-    #     scales=scales,
-    #     order=1,
-    #     backtest=False,
-    #     verbose=False,
-    # )
-    # mf_rw.compute_multifractal()
-    # fig.add_trace(go.Scatter(
-    #     x=mf_rw.alpha,
-    #     y=mf_rw.f_alpha,
-    #     mode="lines+markers",
-    #     name="Random Returns",
-    # ))
-    #
-    # # Mise à jour du graphique
-    # fig.update_layout(
-    #     title="Multifractal Spectrum f(α) for Different Indices and Random Walk",
-    #     xaxis_title="α",
-    #     yaxis_title="f(α)",
-    #     template="plotly_white"
-    # )
-    # fig.show()
+    ref = get_data(file_name[0])
+    ref_returns = np.log(ref).diff().dropna().loc['1998-01-02':'2025-03-31']
+
+    # Utilisation directe des retours aléatoires
+    random_returns = pd.Series(
+        np.random.randn(len(ref_returns)),
+        index=ref_returns.index,
+        name='Random Returns'
+    )
+    print(f"Random Returns → kurtosis: {kurtosis(random_returns):.4f}, length: {len(random_returns)}")
+
+    mf_rw = MultifractalFramework(
+        random_returns,
+        window_hurst=0,
+        window_mfdfa=1004,
+        q_list=q_list,
+        scales=scales,
+        order=1,
+        verbose=False,
+    )
+    mf_rw.compute_multifractal()
+    fig.add_trace(go.Scatter(
+        x=mf_rw.alpha,
+        y=mf_rw.f_alpha,
+        mode="lines+markers",
+        name="Random Returns",
+    ))
+
+    # Mise à jour du graphique
+    fig.update_layout(
+        title="Multifractal Spectrum f(α) for Different Indices and Random Walk",
+        xaxis_title="α",
+        yaxis_title="f(α)",
+        template="plotly_white"
+    )
+    fig.show()
 

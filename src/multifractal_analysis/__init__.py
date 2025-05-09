@@ -1,0 +1,1 @@
+from .mutlifractal_framework import MultifractalFramework

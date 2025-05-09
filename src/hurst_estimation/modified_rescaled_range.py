@@ -1,5 +1,4 @@
 from .abstract_estimation import AbstractHurstEstimator
-from scipy.stats import linregress
 import numpy as np
 from .utils_hurst_estimation import ComputeRS
 
