@@ -1,13 +1,16 @@
 import matlab.engine
 import pandas as pd
 import re
-
+import matplotlib.pyplot as plt
+import numpy as np
 
 class MatlabEngineWrapper:
     def __init__(self, matlab_script_path):
         # Démarre une instance MATLAB
         self.engine = matlab.engine.start_matlab()
         self.engine.addpath(matlab_script_path, nargout=0)
+        self.engine.addpath(self.engine.genpath('tests_matlab/mfe-toolbox-main'), nargout=0)
+        print(self.engine.which('dcc', nargout=1))
 
     def stop(self):
         """Arrête l'instance MATLAB."""
@@ -16,26 +19,128 @@ class MatlabEngineWrapper:
     def perform_adf_test(self, data, lag):
         """Effectue le test ADF en appelant MATLAB."""
         data_matlab = self.pandas_to_matlab_table(data)
-        adf_stats, adf_pvalues = self.engine.performADFTest(data_matlab, lag, nargout=2)
+        adf_stats, adf_pvalues = self.engine.performADFTest(data_matlab, float(lag), nargout=2)
         return self.format_results_df(data.columns.tolist(), adf_stats, adf_pvalues, test_name="ADF", nb_lags=lag)
+    
+    def ensure_stationarity(self, data, lag=9, threshold=0.05):
+        """
+        Applique le test ADF et différencie les séries non stationnaires.
+        À la fin, toutes les séries ont la même taille (alignées sur la série la plus différenciée).
+        """
+        max_iter = 3
+        transformed_data = data.copy()
+        diff_count = {col: 0 for col in data.columns}
 
-    def perform_arch_test(self, data, lag):
+        for _ in range(max_iter):
+            adf_result = self.perform_adf_test(transformed_data, lag)
+            non_stationary_cols = adf_result[adf_result["ADF_pValue"] > threshold]["MarketIndex"]
+
+            if non_stationary_cols.empty:
+                break
+
+            for col in non_stationary_cols:
+                transformed_data[col] = transformed_data[col].diff()
+                diff_count[col] += 1
+
+            transformed_data = transformed_data.dropna()
+        adf_result['DiffCount'] = adf_result['MarketIndex'].map(diff_count)
+        return transformed_data.reset_index(drop=True), adf_result
+
+
+    def perform_arch_test(self, data, lag = 5):
         """Effectue le test ARCH en appelant MATLAB."""
         data_matlab = self.pandas_to_matlab_table(data)
-        arch_stats, arch_pvalues = self.engine.performARCHTest(data_matlab, lag, nargout=2)
+        arch_stats, arch_pvalues = self.engine.performARCHTest(data_matlab, float(lag), nargout=2)
         return self.format_results_df(data.columns.tolist(), arch_stats, arch_pvalues, test_name="ARCH", nb_lags=lag)
     
     
-    def estimate_garch_volatility(self, data):
+    def estimate_garch_volatility(self, data, max_p = 10, max_q = 10):
         """Appelle la fonction MATLAB pour estimer la volatilité conditionnelle et les résidus standardisés."""
         data_matlab = self.pandas_to_matlab_table(data)
 
         # Appelle la fonction MATLAB : elle doit renvoyer deux tables MATLAB
-        cond_vols, resids = self.engine.estimateGARCH(data_matlab, nargout=2)
+        cond_vols, resids, aic, pq = self.engine.estimateGARCH(data_matlab, float(max_p), float(max_q), nargout=4)
 
         df_conds_vol = pd.DataFrame(cond_vols, columns=data.columns.tolist())
         df_resids = pd.DataFrame(resids, columns=data.columns.tolist())
+
         return df_conds_vol, df_resids
+
+    def compute_all_dcc(self, data):
+        """Appelle la fonction MATLAB pour estimer la DCC entre toutes les colonnes."""
+
+        cov_results = {}
+        corr_results = {}
+
+        for i in range(len(data.columns)):
+            for j in range(i + 1, len(data.columns)):
+                data1 = data.iloc[:, i]
+                data2 = data.iloc[:, j]
+                cov_dcc, corr_dcc = self.compute_dcc(data1, data2)
+                cov_results[f'{data.columns[i]}_{data.columns[j]}'] = cov_dcc
+                corr_results[f'{data.columns[i]}_{data.columns[j]}'] = corr_dcc
+   
+        return pd.DataFrame(cov_results), pd.DataFrame(corr_results)
+    
+    def compute_dcc(self, data1, data2):
+        """Appelle la fonction MATLAB pour estimer la DCC."""
+        M, L, N, P, O, Q = 1, 0, 1, 1, 0, 1 # Paramètres par défaut
+      
+        # Convertir en format MATLAB
+        data1_matlab = matlab.double(data1.values.tolist())  # 1 x T
+        data2_matlab = matlab.double(data2.values.tolist())  # 1 x T
+       
+        cov_dcc, corr_dcc = self.engine.computeDCC(
+            data1_matlab,   # T x 1
+            data2_matlab,   # T x 1
+            float(M),
+            float(L),
+            float(N),
+            float(P),
+            float(O),
+            float(Q),
+            nargout=2
+        )
+        cov_dcc_list = [x[0] for x in cov_dcc]
+        corr_dcc_list = [x[0] for x in corr_dcc]
+        return cov_dcc_list, corr_dcc_list
+
+    def compute_all_var(self, data):
+        """Appelle la fonction MATLAB pour estimer le VAR entre toutes les colonnes."""
+        var_results = {}
+        granger_results = {}
+        for i in range(len(data.columns)):
+            for j in range(i + 1, len(data.columns)):
+                data1 = data.iloc[:, i]
+                data2 = data.iloc[:, j]
+                result_table, granger_table = self.compute_var(data1, data2)
+                var_results[f'{data.columns[i]}_{data.columns[j]}'] = result_table
+                granger_results[f'{data.columns[i]}_{data.columns[j]}'] = granger_table
+
+        return var_results, granger_results
+
+    def compute_var(self, data1, data2):
+        """Appelle la fonction MATLAB pour estimer un modèle VAR entre deux séries temporelles."""
+        p = 1  # Ordre du modèle VAR (1)
+
+        # Convertir les données pandas en format compatible avec MATLAB
+        data1_matlab = matlab.double(data1.values.tolist())  # 1 x T
+        data2_matlab = matlab.double(data2.values.tolist())  # 1 x T
+
+        # Appeler la fonction MATLAB estimate_VAR
+        result_table, granger_results = self.engine.estimate_VAR(data1_matlab, data2_matlab, float(p), nargout=2)
+
+        # Convertir les résultats de MATLAB en un tableau numpy
+        result_array = np.array(self.engine.table2array(result_table))
+
+        # Créer des DataFrames pandas pour les résultats VAR et Granger
+        result_df = pd.DataFrame(result_array, columns=['Estimate1', 'Estimate2', 'StdError', 'tValue1', 'tValue2', 'pValue1', 'pValue2'])
+
+        # Format des résultats
+        formatted_var_df = self.format_var_output(result_df, [data1.name, data2.name])
+        formatted_granger_df = self.format_granger_output(granger_results, [data1.name, data2.name])
+
+        return formatted_var_df, formatted_granger_df
 
 
     def pandas_to_matlab_table(self, df):
@@ -76,61 +181,103 @@ class MatlabEngineWrapper:
             f'{test_name}_pValue': [float(p) for p in pvalues[0]],
             "Lags": [nb_lags] * len(var_names),
         })
+    
+    def format_var_output(self, df, var_names):
+        """
+        Reformate un DataFrame de résultats VAR en structure longue.
+
+        Parameters:
+        - df : DataFrame avec colonnes Estimate1, Estimate2, StdError, tValue1, tValue2, pValue1, pValue2
+        - var_names : liste avec les noms des deux variables (ex: ['FTSEMIB', 'FTSE100'])
+
+        Returns:
+        - DataFrame formaté avec une ligne par équation / variable
+        """
+
+        formatted = pd.DataFrame({
+            'Equation': [f'{var_names[0]}', f'{var_names[0]}', f'{var_names[1]}', f'{var_names[1]}'],
+            'Variable': [f'I({var_names[0]})t−1', f'I({var_names[1]})t−1',
+                     f'I({var_names[0]})t−1', f'I({var_names[1]})t−1'],
+            'Estimate': [df['Estimate1'][0], df['Estimate2'][0], df['Estimate1'][1], df['Estimate2'][1]],
+            'StdError': [df['StdError'][0]] * 2 + [df['StdError'][1]] * 2,
+            'tValue': [df['tValue1'][0], df['tValue2'][0], df['tValue1'][1], df['tValue2'][1]],
+            'pValue': [df['pValue1'][0], df['pValue2'][0], df['pValue1'][1], df['pValue2'][1]]
+        })
+        return formatted
+
+    import pandas as pd
+
+    def format_granger_output(self, granger_results, names):
+        """
+        Format the Granger causality test results into a pandas DataFrame.
+        
+        Parameters:
+        - granger_results: MATLAB object containing the Granger test results
+        
+        Returns:
+        - DataFrame with columns: 'Test', 'WaldStat', 'pValue', 'Decision'
+        """
+        # Accessing the necessary fields from the granger_results MATLAB object
+        test_field = self.engine.getfield(granger_results, 'Test')
+        wald_stat_field = self.engine.getfield(granger_results, 'WaldStat')
+        p_value_field = self.engine.getfield(granger_results, 'pValue')
+        decision_field = self.engine.getfield(granger_results, 'Decision')
+        
+        # Convert each field to a list or array (depending on the type of the field)
+        test_list = list(test_field)  # or use np.array(test_field) if needed
+        wald_stat_list = [x[0] for x in  wald_stat_field]  # or np.array(wald_stat_field)
+        p_value_list =  [x[0] for x in  p_value_field]  # or np.array(p_value_field)
+        decision_list = list(decision_field)  # or np.array(decision_field)
+        
+        # Creating a DataFrame from the extracted fields
+        granger_df = pd.DataFrame({
+            'Y1' : names[0],
+            'Y2' : names[1],
+            'Test': test_list,
+            'WaldStat': wald_stat_list,
+            'pValue': p_value_list,
+            'Decision': decision_list
+        })
+        
+        return granger_df
 
 def main():
     # Charger les données
     inefficiency_data = pd.read_excel('tests_matlab/inefficiency.xlsx')
 
     # Initialiser le wrapper MATLAB
-    matlab_wrapper = MatlabEngineWrapper('c:/Users/bapdu/COMMUN/Dauphine/measuring-market-inefficiency-conditional-correlation/tests_matlab')
+    matlab_wrapper = MatlabEngineWrapper('tests_matlab')
 
     # Exécuter les tests
-    adf_df = matlab_wrapper.perform_adf_test(inefficiency_data.iloc[:, 1:], 9.0)
-    arch_df = matlab_wrapper.perform_arch_test(inefficiency_data.iloc[:, 1:], 5.0)
+    data_diff, adf_result = matlab_wrapper.ensure_stationarity(inefficiency_data.iloc[:, 1:], lag=9, threshold=0.05)
+    arch_df = matlab_wrapper.perform_arch_test(data_diff, 5)
 
     # Afficher les résultats
     print("=== Résultats ADF ===")
-    print(adf_df)
+    print(adf_result) 
     print("\n=== Résultats ARCH ===")
     print(arch_df)
 
-    df_conds_vol, df_resids = matlab_wrapper.estimate_garch_volatility(inefficiency_data.iloc[:, 1:])
+    # df_conds_vol, df_resids = matlab_wrapper.estimate_garch_volatility(data_diff)
 
-    # Sauvegarde ou affichage
-    print("\n=== Volatilité conditionnelle ===")
-    print(df_conds_vol.head())
-    print("\n=== Résidus standardisés ===")
-    print(df_resids.head())
-    import matplotlib.pyplot as plt
+    # # Sauvegarde ou affichage
+    # print("\n=== Volatilité conditionnelle ===")
+    # print(df_conds_vol.head())
+    # print("\n=== Résidus standardisés ===")
+    # print(df_resids.head())
 
-    # Supposons que df_conds_vol et df_resids sont déjà calculés par matlab_wrapper
-    # df_conds_vol et df_resids contiennent les données des volatilités et des résidus standardisés
+    #cov_dcc, corr_dcc = matlab_wrapper.compute_all_dcc(data_diff)
 
-    # Création de la figure et des sous-graphiques
-    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 6), sharex=True)
-
-    # Plot de la volatilité conditionnelle
-    for column in df_conds_vol.columns:
-        ax1.plot(df_conds_vol.index, df_conds_vol[column], label=column)
-    ax1.set_title('Volatilité Conditionnelle')
-    ax1.set_ylabel('Volatilité')
-    ax1.legend()
-
-    # Plot des résidus standardisés
-    for column in df_resids.columns:
-        ax2.plot(df_resids.index, df_resids[column], label=column)
-    ax2.set_title('Résidus Standardisés')
-    ax2.set_ylabel('Résidus')
-    ax2.legend()
-
-    # Ajuster l'espacement entre les sous-graphiques
-    plt.tight_layout()
-
-    # Afficher les graphiques
-    plt.show()
-
-
-
+    var_results, granger_results = matlab_wrapper.compute_all_var(data_diff)
+    print("\n=== Résultats VAR ===")
+    for key, result in var_results.items():
+        print(f"\n=== VAR entre {key} ===")
+        print(result)
+    
+    print("\n=== Résultats Granger ===")
+    for key, result in granger_results.items():
+        print(f"\n=== Granger entre {key} ===")
+        print(result)
 
     # Fermer l'instance MATLAB
     matlab_wrapper.stop()
