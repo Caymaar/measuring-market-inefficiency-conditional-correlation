@@ -8,6 +8,9 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
 import seaborn as sns
 import json
+import math
+import pandas as pd
+import statsmodels.api as sm
 
 
 class EstimatorComparison:
@@ -20,7 +23,8 @@ class EstimatorComparison:
                  true_hurst_values: List[float] = [0.5], 
                  nb_simulations: int = 1000, 
                  simulation_length: List[float] = [1000],
-                 methods_params: List[Dict] = None):
+                 methods_params: List[Dict] = None,
+                 json_path: str = "output/etude_estimateurs/all_results.json"):
         """
         Initialize the EstimatorComparison with a list of Hurst methods.
 
@@ -36,7 +40,7 @@ class EstimatorComparison:
         self.nb_simulations = nb_simulations
         self.simulation_length = simulation_length
         self.methods_params = methods_params if methods_params is not None else []
-
+        self.json_path = json_path
         self.all_results = None
 
     def _generate_fbm(self, true_hurst: float, simulation_length: int) -> np.ndarray:
@@ -121,7 +125,7 @@ class EstimatorComparison:
         with open("output/etude_estimateurs/all_results.json", "w") as f:
             json.dump(all_results, f, indent=4)
         
-    def _load_results(self, file_path: str = "output/etude_estimateurs/all_results.json"):
+    def _load_results(self):
         """
         Load the results either from thefrom a JSON file.
         
@@ -129,7 +133,7 @@ class EstimatorComparison:
             file_path (str): Path to the JSON file containing the results
         """
         if not self.all_results:
-            with open(file_path, "r") as f:
+            with open(self.json_path, "r") as f:
                 raw = json.load(f)
             results = {}
             for sim_len_str, hurst_dict in raw.items():
@@ -200,13 +204,12 @@ class EstimatorComparison:
 
     def plot_hurst_heatmap(self, metric: str = 'mse'):
         """
-        Generate a heatmap of estimator performance across true H values and simulation lengths.
+        Generate heatmaps of estimator performance across true H values and simulation lengths.
         
         Parameters:
             metric (str): Metric to visualize ('mse', 'bias', or 'variance')
         """
         results = self._load_results()
-
         all_results: dict = results
 
         true_hursts = sorted(next(iter(all_results.values())).keys())
@@ -214,35 +217,44 @@ class EstimatorComparison:
         methods = list(next(iter(next(iter(all_results.values())).values())).keys())
         
         n_methods = len(methods)
-        fig, axes = plt.subplots(1, n_methods, figsize=(5*n_methods, 4.5))
-        if n_methods == 1:
-            axes = [axes]
-        
-        for ax, method in zip(axes, methods):
+        n_cols = 3
+        n_rows = math.ceil(n_methods / n_cols)
+
+        fig, axes = plt.subplots(n_rows, n_cols, figsize=(5*n_cols, 4.5*n_rows))
+        axes = axes.flatten()  # To access axes[i] easily even in grid
+
+        for idx, method in enumerate(methods):
+            ax = axes[idx]
             data = np.zeros((len(true_hursts), len(sim_lengths)))
             for i, true_h in enumerate(true_hursts):
                 for j, n in enumerate(sim_lengths):
-                    data[i,j] = all_results[n][true_h][method][metric]
-            
-            sns.heatmap(data, 
-                    ax=ax,
-                    annot=True,
-                    norm=LogNorm(),
-                    fmt=".3f",
-                    cmap="YlOrRd_r",
-                    cbar_kws={'label': f"{metric.upper()} (Log Scale)"},
-                    xticklabels=sim_lengths,
-                    yticklabels=[f"{h:.1f}" for h in true_hursts])
-            
-            ax.set_title(f"{method}\n{metric.upper()}")
+                    data[i, j] = all_results[n][true_h][method][metric]
+
+            sns.heatmap(
+                data,
+                ax=ax,
+                annot=True,
+                norm=LogNorm(),
+                fmt=".3f",
+                cmap="YlOrRd_r",
+                cbar_kws={'label': f"{metric.capitalize()} (Log Scale)"},
+                xticklabels=sim_lengths,
+                yticklabels=[f"{h:.1f}" for h in true_hursts]
+            )
+
+            ax.set_title(f"{method}\n{metric.capitalize()}")
             ax.set_xlabel("Series Length")
             ax.set_ylabel("True Hurst")
+
+        # Hide unused subplots
+        for k in range(len(methods), len(axes)):
+            fig.delaxes(axes[k])
         
         plt.tight_layout()
-        fig.savefig(f"output/etude_estimateurs/HeatMap.png", dpi=150)
+        fig.savefig(f"output/etude_estimateurs/{metric.capitalize()}HeatMap.png", dpi=150)
         plt.close(fig)
 
-    def plot_metric_vs_hurst(self, simulation_length: int, metric: str = 'mse', show_confidence: bool = True):
+    def plot_metric_vs_hurst(self, simulation_length: int, metric: str = 'mse', show_confidence: bool = True, exclusions: list = None):
         """
         Plot performance metric vs true Hurst value for all methods.
         
@@ -263,7 +275,9 @@ class EstimatorComparison:
         colors = plt.cm.tab10.colors
         
         for i, method in enumerate(methods):
-            metric_values = [results[h][method][metric] for h in true_hursts]
+            if exclusions and method in exclusions:
+                continue
+            metric_values = np.abs([results[h][method][metric] for h in true_hursts])
             
             if show_confidence and metric != 'variance':
                 std_errors = [np.std(results[h][method]['distrib'])/np.sqrt(len(results[h][method]['distrib'])) for h in true_hursts]
@@ -285,8 +299,8 @@ class EstimatorComparison:
                 ax.plot(true_hursts, upper, '--', color=line.get_color(), alpha=0.4)
 
         ax.set_xlabel('True Hurst Exponent', fontsize=12)
-        ax.set_ylabel(metric.upper(), fontsize=12)
-        ax.set_title(f'Performance vs True Hurst (n={simulation_length})', fontsize=14)
+        ax.set_ylabel(metric.capitalize(), fontsize=12)
+        ax.set_title(f'{metric.capitalize()} vs True Hurst (n={simulation_length})', fontsize=14)
         ax.grid(True, linestyle='--', alpha=0.6)
         ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
         
@@ -296,10 +310,10 @@ class EstimatorComparison:
             ax.axvline(0.5, color='gray', linestyle=':', alpha=0.5)
         
         plt.tight_layout()
-        plt.savefig(f"output/etude_estimateurs/{metric.upper()}vsHurst.png", bbox_inches='tight')
+        plt.savefig(f"output/etude_estimateurs/{metric.capitalize()}vsHurst.png", bbox_inches='tight')
         plt.close()
 
-    def plot_metric_vs_length(self, true_hurst: float, metric: str = 'mse', show_confidence: bool = True):
+    def plot_metric_vs_length(self, true_hurst: float, metric: str = 'mse', show_confidence: bool = True, exclusions: list = None):
         """
         Plot performance metric vs simulation length for all methods at a given true H.
         
@@ -319,12 +333,14 @@ class EstimatorComparison:
         colors = plt.cm.tab10.colors
         
         for i, method in enumerate(methods):
+            if exclusions and method in exclusions:
+                continue
             metric_values = []
             std_errors = []
             
             for length in lengths:
                 res = results[length][true_hurst][method]
-                metric_values.append(res[metric])
+                metric_values.append(np.abs(res[metric]))
                 if show_confidence and metric != 'variance':
                     std_errors.append(np.std(res['distrib'])/np.sqrt(len(res['distrib'])))
             
@@ -355,11 +371,110 @@ class EstimatorComparison:
 
         # Customization matching your style
         ax.set_xlabel('Simulation Length', fontsize=12)
-        ax.set_ylabel(metric.upper(), fontsize=12)
-        ax.set_title(f'Performance vs Sample Size (True H = {true_hurst})', fontsize=14)
+        ax.set_ylabel(metric.capitalize(), fontsize=12)
+        ax.set_title(f'{metric.capitalize()} vs Sample Size (True H = {true_hurst})', fontsize=14)
         ax.grid(True, linestyle='--', alpha=0.6)
         ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
         
         plt.tight_layout()
-        plt.savefig(f"output/etude_estimateurs/{metric.upper()}vsLength.png", bbox_inches='tight')
+        plt.savefig(f"output/etude_estimateurs/{metric.capitalize()}vsLength.png", bbox_inches='tight')
+        plt.close()
+
+    def plot_execution_times(self, true_hurst: float):
+        """
+        Plot a bar chart comparing execution times (in milliseconds) across methods and series lengths,
+        for a given true Hurst exponent. Uses 'hue' for simulation length.
+
+        Parameters:
+            true_hurst (float): The Hurst exponent to filter on
+        """
+        results = self._load_results()
+
+        data = []
+        for sim_length, hurst_dict in results.items():
+            if true_hurst in hurst_dict:
+                for method, metrics in hurst_dict[true_hurst].items():
+                    data.append({
+                        "Method": method,
+                        "Execution Time (ms)": metrics['time'] * 1000,  # Convert to ms
+                        "Series Length": sim_length
+                    })
+
+        df = pd.DataFrame(data)
+
+        plt.figure(figsize=(10, 6))
+        sns.barplot(
+            data=df,
+            x="Method",
+            y="Execution Time (ms)",
+            hue="Series Length",
+            palette="viridis"
+        )
+
+        plt.title(f"Average execution time per Method (True H = {true_hurst})")
+        plt.ylabel("Execution Time (ms)")
+        plt.xlabel("Method")
+        plt.xticks(rotation=45, ha='right')
+        plt.grid(axis='y', linestyle='--', alpha=0.5)
+        plt.tight_layout()
+
+        plt.savefig(f"output/etude_estimateurs/ExecTime_BarPlot_H{str(true_hurst).replace('.', '_')}.png", dpi=150)
+        plt.close()
+
+    def plot_qq_plot(self, true_hurst: float, simulation_length: int):
+        """
+        Generate a grid of QQ-plots for all methods with normality statistics.
+
+        Parameters:
+            true_hurst (float): The true Hurst value used for simulation
+            simulation_length (int): The simulation length used
+        """
+        results = self._load_results()
+        
+        try:
+            method_results = results[simulation_length][true_hurst]
+        except KeyError:
+            print("Invalid Hurst value or simulation length.")
+            return
+
+        methods = list(method_results.keys())
+        n_methods = len(methods)
+        
+        # Create subplot grid
+        n_cols = 3
+        n_rows = math.ceil(n_methods / n_cols)
+        fig, axes = plt.subplots(n_rows, n_cols, figsize=(4*n_cols, 3.5*n_rows))
+        axes = axes.flatten()
+
+        for idx, method in enumerate(methods):
+            ax = axes[idx]
+            estimates = method_results[method]['distrib']
+            ks_stat = method_results[method]['ks_stat']
+            
+            # Create QQ-plot
+            sm.qqplot(np.array(estimates), line='s', ax=ax)
+            
+            # Add normality annotation
+            ax.annotate(f"KS = {ks_stat:.3f}", 
+                        xy=(0.05, 0.85), 
+                        xycoords='axes fraction',
+                        bbox=dict(boxstyle="round", fc="white", alpha=0.8))
+            
+            # Customize subplot
+            ax.set_title(method, fontsize=10, pad=5)
+            ax.tick_params(axis='both', which='major', labelsize=8)
+            ax.grid(True, alpha=0.3, linestyle='--')
+
+        # Hide empty subplots
+        for idx in range(len(methods), len(axes)):
+            fig.delaxes(axes[idx])
+
+        # Main title and layout
+        plt.suptitle(f"QQ-plots (H={true_hurst}, L={simulation_length})", 
+                    y=1.02, fontsize=12)
+        plt.tight_layout()
+        
+        # Save and close
+        plt.savefig(f"output/etude_estimateurs/QQGrid_H{str(true_hurst).replace('.', '_')}_L{simulation_length}.png", 
+                    dpi=150, bbox_inches='tight')
         plt.close()
