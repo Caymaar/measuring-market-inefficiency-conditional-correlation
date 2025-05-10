@@ -10,7 +10,7 @@ from src.launcher import Launcher
 #                      "window": 1000}}
 config = {"hurst_method": HurstMethodType.SCALED_WINDOWED_VARIANCE,
           "garch_method": GarchMethodType.DCC,
-          "data": ["ftsemib", "ssec", "ftse100"],
+          "data": ["s&p500", "ssec", "ftse100", "ftsemib"],
           "dates": {"Sub-Primes": ["01-07-2007", "01-09-2009"]},
           "params": {"hurst_params": {"method": "SD", "exclusions": True},"window": 100}}
 

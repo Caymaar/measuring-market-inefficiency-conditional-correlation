@@ -11,7 +11,7 @@ class Results:
     Save the figures and the tables in the output directory.
     """
 
-    def __init__(self, inefficiency_df: pd.DataFrame, dcc: np.ndarray, granger_tests: pd.DataFrame, plot: bool = True):
+    def __init__(self, inefficiency_df: pd.DataFrame, dcc: np.ndarray, var_results : dict[pd.DataFrame], granger_tests: dict[pd.DataFrame], plot: bool = True):
         """
         Parameters:
             inefficiency_series (pd.DataFrame): DataFrame containing the inefficiency series
@@ -20,6 +20,7 @@ class Results:
         """
         self.inefficiency_df = inefficiency_df
         self.dcc = dcc
+        self.var_results = var_results
         self.granger_tests = granger_tests
         
         self.plot = plot
@@ -87,9 +88,10 @@ class Results:
             num_rows = (num_series + 1) // 2  # Calculate the number of rows needed for two columns
             fig, axes = plt.subplots(num_rows, 2, figsize=(15, 5 * num_rows), sharex=True)
             axes = axes.flatten()  # Flatten the axes array for easier indexing
+            diff_dates = len(self.inefficiency_df.index) - len(self.dcc.index)
 
             for i, column in enumerate(self.dcc.columns):
-                axes[i].plot(self.dcc.index, self.dcc[column], label=column, color='blue')
+                axes[i].plot(self.inefficiency_df.index[diff_dates:], self.dcc[column], label=column, color='blue')
                 axes[i].set_title(f'DCC Correlation Series: {column}', fontsize=14)
                 axes[i].set_xlabel('Time', fontsize=12)
                 axes[i].set_ylabel('Correlation', fontsize=12)
@@ -106,8 +108,21 @@ class Results:
                 plt.show()
             plt.close()
 
+
+        if self.var_results == {}:
+            print("VAR results are empty. Skipping Granger causality plot.")
+        else:
+            # Saving the Granger causality test results
+            print("VAR results saving:")
+            with pd.ExcelWriter('output/var_results.xlsx', engine='xlsxwriter') as writer:
+                for sheet_name, df in self.var_results.items():
+                    df.to_excel(writer, sheet_name=sheet_name, index=False)
+
         if self.granger_tests == {}:
             print("Granger causality test results are empty. Skipping Granger causality plot.")
         else:
             # Saving the Granger causality test results
-            self.granger_tests.to_csv('output/granger_tests_results.csv', index=False)
+            print("Granger causality test results saving:")
+            with pd.ExcelWriter('output/granger_tests_results.xlsx', engine='xlsxwriter') as writer:
+                for sheet_name, df in self.granger_tests.items():
+                    df.to_excel(writer, sheet_name=sheet_name, index=False)
