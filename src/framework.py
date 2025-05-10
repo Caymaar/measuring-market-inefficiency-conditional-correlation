@@ -31,7 +31,7 @@ class Framework:
 
         # Initialize the output series
         self.inefficiency_df = pd.DataFrame()
-        self.dcc_df = pd.DataFrame()
+        self.corr_dcc = pd.DataFrame()
         self.granger_tests = {}
 
     def _compute_inefficiency(self):
@@ -86,22 +86,23 @@ class Framework:
         # self._compute_granger_causality()
 
         df_conds_vol, df_resids = self.matlab_wrapper.estimate_garch_volatility(data_diff)
-        cov_dcc, corr_dcc = self.matlab_wrapper.compute_all_dcc(data_diff)
+        self.cov_dcc, self.corr_dcc = self.matlab_wrapper.compute_all_dcc(data_diff)
 
-        var_results, granger_results = self.matlab_wrapper.compute_all_var(data_diff)
+        self.var_results, self.granger_tests = self.matlab_wrapper.compute_all_var(data_diff)
         print("\n=== Résultats VAR ===")
-        for key, result in var_results.items():
+        for key, result in self.var_results.items():
             print(f"\n=== VAR entre {key} ===")
             print(result)
         
         print("\n=== Résultats Granger ===")
-        for key, result in granger_results.items():
+        for key, result in self.granger_tests.items():
             print(f"\n=== Granger entre {key} ===")
             print(result)
 
         res = Results(
             inefficiency_df=self.inefficiency_df,
-            dcc=corr_dcc,
+            dcc=self.corr_dcc,
+            var_results=self.var_results,
             granger_tests=self.granger_tests
         )
 
