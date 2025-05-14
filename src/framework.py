@@ -74,8 +74,8 @@ class Framework:
         self._compute_inefficiency()
 
         # Compute ADF test and ARCH test
-        data_diff, adf_result = self.matlab_wrapper.ensure_stationarity(self.inefficiency_df, lag=9, threshold=0.05)
-        arch_df = self.matlab_wrapper.perform_arch_test(data_diff, 5)
+        data_diff, adf_result = self.matlab_wrapper.ensure_stationarity(self.inefficiency_df.dropna(), lag=9, threshold=0.05)
+        arch_df = self.matlab_wrapper.perform_arch_test(data_diff,12)
         
         print("=== Résultats ADF ===")
         print(adf_result) 
@@ -86,9 +86,12 @@ class Framework:
         # self._compute_granger_causality()
 
         df_conds_vol, df_resids = self.matlab_wrapper.estimate_garch_volatility(data_diff)
-        self.cov_dcc, self.corr_dcc = self.matlab_wrapper.compute_all_dcc(data_diff)
 
-        self.var_results, self.granger_tests = self.matlab_wrapper.compute_all_var(data_diff)
+        df_to_compare = data_diff.copy()
+
+        self.cov_dcc, self.corr_dcc = self.matlab_wrapper.compute_all_dcc(df_to_compare)
+
+        self.var_results, self.granger_tests = self.matlab_wrapper.compute_all_var(df_to_compare)
         print("\n=== Résultats VAR ===")
         for key, result in self.var_results.items():
             print(f"\n=== VAR entre {key} ===")

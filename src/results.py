@@ -3,7 +3,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 from itertools import combinations
 import math
+import matplotlib.dates as mdates
+import seaborn as sns
 
+sns.set(style="whitegrid", palette="muted")
 
 class Results:
     """
@@ -22,92 +25,81 @@ class Results:
         self.dcc = dcc
         self.var_results = var_results
         self.granger_tests = granger_tests
-        
+
         self.plot = plot
 
     def generate(self):
-        """
-        Generate the results by saving the figures and the tables.
-        """
-
         # Plotting the inefficiency series with two columns layout
         num_series = self.inefficiency_df.shape[1]
-        num_rows = (num_series + 1) // 2  # Calculate the number of rows needed for two columns
+        num_rows = (num_series + 1) // 2
         fig, axes = plt.subplots(num_rows, 2, figsize=(15, 5 * num_rows), sharex=True)
-        axes = axes.flatten()  # Flatten the axes array for easier indexing
-
+        axes = axes.flatten()
+        self.inefficiency_df.index = pd.to_datetime(self.inefficiency_df.index)
+        
+        colors = sns.color_palette("tab10", n_colors=num_series)
+        
         for i, column in enumerate(self.inefficiency_df.columns):
-            axes[i].plot(self.inefficiency_df.index, self.inefficiency_df[column], label=column, color='blue')
-            axes[i].set_title(f'Inefficiency Series: {column}', fontsize=14)
-            axes[i].set_xlabel('Time', fontsize=12)
+            axes[i].plot(self.inefficiency_df.index, self.inefficiency_df[column], label=column, color=colors[i])
+            axes[i].set_title(f'Inefficiency Series: {column}', fontsize=14, weight='bold', color='darkblue', backgroundcolor='lightgray')
             axes[i].set_ylabel('Inefficiency', fontsize=12)
             axes[i].grid(True, linestyle='--', alpha=0.6)
             axes[i].legend(fontsize=10)
+            axes[i].xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d'))
+            axes[i].xaxis.set_major_locator(mdates.AutoDateLocator())
+            
+            for label in axes[i].get_xticklabels():
+                label.set_rotation(45)
+                label.set_horizontalalignment('right')
+                label.set_fontsize(10)
 
-        # Hide any unused subplots
+        # Hide unused subplots
         for j in range(i + 1, len(axes)):
-            fig.delaxes(axes[j])
+            axes[j].axis('off')
 
         plt.tight_layout()
+        plt.subplots_adjust(hspace=0.3, wspace=0.3)
         plt.savefig('output/inefficiency_series_plot.png', dpi=300)
         if self.plot:
             plt.show()
         plt.close()
-        
+
         if len(self.dcc) == 0:
             print("DCC series is empty. Skipping DCC plot.")
         else:
-            # T, N, _ = self.dcc.shape
-            # paires = list(combinations(range(N), 2))
-            # M = len(paires)
-
-            # # Définir la grille (nrows x ncols) la plus carrée possible
-            # ncols = math.ceil(math.sqrt(M))
-            # nrows = math.ceil(M / ncols)
-
-            # fig, axs = plt.subplots(nrows, ncols, figsize=(4*ncols, 3*nrows))
-            # axes = axs.ravel()
-
-            # for idx, (i, j) in enumerate(paires):
-            #     ax = axes[idx]
-            #     corr_series = self.dcc[:, i, j]
-            #     ax.plot(corr_series)
-            #     ax.set_title(f"Corrélation {i+1}-{j+1}")
-            #     ax.set_xlabel("Date")
-            #     ax.set_ylabel("ρₜ")
-            
-            # # Retirer les axes inutilisés
-            # for k in range(M, len(axes)):
-            #     fig.delaxes(axes[k])
-
-            # # Ajustement et légende si besoin (ex. légende globale)
-            # plt.tight_layout()
-            # # fig.legend([...], bbox_to_anchor=(1.05,1), loc='upper left')
-            # plt.show()
             num_series = self.dcc.shape[1]
-            num_rows = (num_series + 1) // 2  # Calculate the number of rows needed for two columns
-            fig, axes = plt.subplots(num_rows, 2, figsize=(15, 5 * num_rows), sharex=True)
-            axes = axes.flatten()  # Flatten the axes array for easier indexing
+            num_rows = (num_series + 2) // 3  # Now dividing by 3 instead of 2 for 3 columns
+            fig, axes = plt.subplots(num_rows, 3, figsize=(15, 5 * num_rows), sharex=True)
+            axes = axes.flatten()
+            
             diff_dates = len(self.inefficiency_df.index) - len(self.dcc.index)
+            self.dcc.index = pd.to_datetime(self.dcc.index)
+            
+            colors = sns.color_palette("tab10", n_colors=num_series)
 
             for i, column in enumerate(self.dcc.columns):
-                axes[i].plot(self.inefficiency_df.index[diff_dates:], self.dcc[column], label=column, color='blue')
-                axes[i].set_title(f'DCC Correlation Series: {column}', fontsize=14)
-                axes[i].set_xlabel('Time', fontsize=12)
+                axes[i].plot(self.inefficiency_df.index[diff_dates:], self.dcc[column], label=column, color=colors[i])
+                axes[i].set_title(f'DCC Correlation Series: {column}', fontsize=14, weight='bold', color='darkgreen', backgroundcolor='lightyellow')
                 axes[i].set_ylabel('Correlation', fontsize=12)
                 axes[i].grid(True, linestyle='--', alpha=0.6)
                 axes[i].legend(fontsize=10)
+                axes[i].xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d'))
+                axes[i].xaxis.set_major_locator(mdates.AutoDateLocator())
+                
+                for label in axes[i].get_xticklabels():
+                    label.set_rotation(45)
+                    label.set_horizontalalignment('right')
+                    label.set_fontsize(10)
 
-            # Hide any unused subplots
+            # Hide unused subplots
             for j in range(i + 1, len(axes)):
-                fig.delaxes(axes[j])
+                axes[j].axis('off')
 
             plt.tight_layout()
+            plt.subplots_adjust(hspace=0.3, wspace=0.3)
             plt.savefig('output/correlation_series_plot.png', dpi=300)
             if self.plot:
                 plt.show()
             plt.close()
-
 
         if self.var_results == {}:
             print("VAR results are empty. Skipping Granger causality plot.")
