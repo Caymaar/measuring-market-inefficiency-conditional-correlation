@@ -10,7 +10,7 @@ class Launcher:
     Run the Framework for each set of dates.
     """
 
-    def __init__(self, data: List[str], dates: Dict[str, List[str]], hurst_method: HurstMethodType, garch_method: GarchMethodType, params=Dict[str, any]):
+    def __init__(self, data: List[str], dates: Dict[str, List[str]], hurst_method: HurstMethodType, garch_method: GarchMethodType, params=Dict[str, any], folder : str = '' ):
         """
         Parameters:
             data (List[str]): Input data names
@@ -22,7 +22,7 @@ class Launcher:
         self.garch_method = garch_method
         self.dates = dates
         self.params = params
-
+        self.folder = folder
         start_date = min([pd.to_datetime(period[0], dayfirst=True) for period in dates.values()]) - pd.DateOffset(days=self.params.get('window', 0))
         end_date = max([pd.to_datetime(period[1], dayfirst=True) for period in dates.values()])
 
@@ -81,8 +81,11 @@ class Launcher:
         """
         Run the full process for each set of date.
         """
+        names = ["financial_crisis", "covid", "ukraine_war"]
+        a = 0
         for period_name, set_dates in self.dates.items():
             print(f"Processing period: {period_name} with dates: {set_dates}")
             period_data = self._get_sub_dataframe(set_dates)
-            framework = Framework(period_data, self.hurst_method, self.garch_method, self.params)
+            framework = Framework(period_data, self.hurst_method, self.garch_method, self.params,self.folder + "/" + names[a] )
             framework.run()
+            a+=1

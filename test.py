@@ -14,7 +14,8 @@ config = {"hurst_method": HurstMethodType.SCALED_WINDOWED_VARIANCE,
           "dates": {"Sub-Primes": ["01-07-2007", "01-09-2009"],
                     "COVID-2019": ["31-12-2020", "31-12-2021"],
                      "Ukraine War": ["24-02-2022", "24-02-2023"]},
-          "params": {"hurst_params": {"method": "SD", "exclusions": True},"window":25  }}
+          "params": {"hurst_params": {"method": "SD", "exclusions": True},"window":25  },
+          "folder": "scaled_windowed"}
 
 launcher = Launcher(**config)
 test = launcher.run_process()

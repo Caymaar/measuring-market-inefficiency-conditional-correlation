@@ -219,7 +219,7 @@ class MatlabEngineWrapper:
         """
         # Accessing the necessary fields from the granger_results MATLAB object
         test_field = self.engine.getfield(granger_results, 'Test')
-        wald_stat_field = self.engine.getfield(granger_results, 'WaldStat')
+        wald_stat_field = self.engine.getfield(granger_results, 'Statistic')
         p_value_field = self.engine.getfield(granger_results, 'pValue')
         decision_field = self.engine.getfield(granger_results, 'Decision')
         

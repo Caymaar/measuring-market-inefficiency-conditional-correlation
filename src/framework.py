@@ -13,7 +13,7 @@ class Framework:
     Framework buit to analyse the conditional correlations & the causality between markets' inefficiencies.
     """
 
-    def __init__(self, data: pd.DataFrame, hurst_method: HurstMethodType, garch_type: GarchMethodType, params=Dict[str, None]):
+    def __init__(self, data: pd.DataFrame, hurst_method: HurstMethodType, garch_type: GarchMethodType, params=Dict[str, None], path : str = ''):
         """
         Instanciate the Framework by setting the input data and the parameters.
 
@@ -27,6 +27,7 @@ class Framework:
         self.hurst_method = hurst_method
         self.garch_type = garch_type
         self.params = params
+        self.path = "output/"+path +"/"
         self.matlab_wrapper = MatlabEngineWrapper('src/matlab_src/matlab_scripts')
 
         # Initialize the output series
@@ -106,7 +107,9 @@ class Framework:
             inefficiency_df=self.inefficiency_df,
             dcc=self.corr_dcc,
             var_results=self.var_results,
-            granger_tests=self.granger_tests
+            granger_tests=self.granger_tests,
+            path=self.path,
+            plot=False,
         )
 
         res.generate()

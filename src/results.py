@@ -14,7 +14,8 @@ class Results:
     Save the figures and the tables in the output directory.
     """
 
-    def __init__(self, inefficiency_df: pd.DataFrame, dcc: np.ndarray, var_results : dict[pd.DataFrame], granger_tests: dict[pd.DataFrame], plot: bool = True):
+    def __init__(self, inefficiency_df: pd.DataFrame, dcc: np.ndarray, var_results : dict[pd.DataFrame], granger_tests: dict[pd.DataFrame], 
+                 plot: bool = True, path: str = ''):
         """
         Parameters:
             inefficiency_series (pd.DataFrame): DataFrame containing the inefficiency series
@@ -27,6 +28,8 @@ class Results:
         self.granger_tests = granger_tests
 
         self.plot = plot
+        self.path = path
+        print("Results initialized with path: ", self.path)
 
     def generate(self):
         # Plotting the inefficiency series with two columns layout
@@ -58,7 +61,7 @@ class Results:
 
         plt.tight_layout()
         plt.subplots_adjust(hspace=0.3, wspace=0.3)
-        plt.savefig('output/inefficiency_series_plot.png', dpi=300)
+        #plt.savefig(self.path+'_inneficiency_series.png', dpi=300)
         if self.plot:
             plt.show()
         plt.close()
@@ -96,7 +99,7 @@ class Results:
 
             plt.tight_layout()
             plt.subplots_adjust(hspace=0.3, wspace=0.3)
-            plt.savefig('output/correlation_series_plot.png', dpi=300)
+            #plt.savefig(self.path+'_dcc.png', dpi=300)
             if self.plot:
                 plt.show()
             plt.close()
@@ -106,7 +109,7 @@ class Results:
         else:
             # Saving the Granger causality test results
             print("VAR results saving:")
-            with pd.ExcelWriter('output/var_results.xlsx', engine='xlsxwriter') as writer:
+            with pd.ExcelWriter(self.path+'_var_results.xlsx', engine='xlsxwriter') as writer:
                 for sheet_name, df in self.var_results.items():
                     df.to_excel(writer, sheet_name=sheet_name, index=False)
 
@@ -115,6 +118,6 @@ class Results:
         else:
             # Saving the Granger causality test results
             print("Granger causality test results saving:")
-            with pd.ExcelWriter('output/granger_tests_results.xlsx', engine='xlsxwriter') as writer:
+            with pd.ExcelWriter(self.path+'_granger_tests_results.xlsx', engine='xlsxwriter') as writer:
                 for sheet_name, df in self.granger_tests.items():
                     df.to_excel(writer, sheet_name=sheet_name, index=False)
